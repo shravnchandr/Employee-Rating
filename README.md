@@ -1,89 +1,144 @@
-# 🌟 Employee Rating Application
+# Janhavi Medicals - Employee Rating Portal
 
-A modern, high-performance employee performance management system built with **React**, **Vite**, and **Material 3 Expressive Design**. This platform enables organizations to manage employee information, conduct performance reviews, and visualize data-driven trends.
+![Janhavi Medicals Logo](public/janhavi-logo.jpg)
 
----
+**Since 1984**
 
-## ✨ Key Features
+A modern, Material 3 Expressive design employee performance evaluation system built specifically for Janhavi Medicals pharmacy.
 
-- **🚀 Expressive UI**: Leveraging Material 3 principles for a premium, accessible, and fluid user experience.
-- **📊 Performance Analytics**: Visual representation of rating trends using Recharts.
-- **🛠 Admin Dashboard**: Comprehensive management of employees and rating categories.
-- **👥 Dual Perspectives**: Supports both admin and peer rating systems for balanced feedback.
-- **📱 Responsive Design**: Works seamlessly across desktop and mobile browsers.
-- **🔒 Secure View**: Password-protected sensitive data toggles in the admin view.
+## About Janhavi Medicals
 
----
+Janhavi Medicals has been serving the community since 1984, providing quality pharmaceutical services and healthcare products. This employee rating portal helps maintain our high standards by facilitating comprehensive performance evaluations.
 
-## 🛠 Tech Stack
+## Features
 
-### Frontend
-- **Framework**: [React 19](https://react.dev/)
-- **Build Tool**: [Vite](https://vite.dev/)
-- **Language**: [TypeScript](https://www.typescriptlang.org/)
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
-- **Icons**: [Lucide React](https://lucide.dev/)
-- **Charts**: [Recharts](https://recharts.org/)
+### 🎨 Material 3 Expressive Design
+- **Asymmetric shapes** for visual interest
+- **Expressive typography** with bold headlines
+- **Gradient backgrounds** and decorative elements
+- **Fluid animations** with spring physics
+- **Ocean Blue & Teal** color palette
 
-### Backend
-- **Server**: [Express](https://expressjs.com/)
-- **Storage**: JSON-based persistent storage (`server/data/db.json`)
+### � Employee Management
+- Add and manage pharmacy staff
+- Upload employee photos
+- Track performance metrics
+- View employee rankings
 
----
+### ⭐ Rating System
+- **Admin ratings** (60% weight) - Management evaluations
+- **Peer ratings** (40% weight) - Colleague feedback
+- **Weighted scoring** for comprehensive assessment
+- **Category-based evaluation**: Communication, Teamwork, Quality, Productivity
 
-## 🚀 Getting Started
+### 📊 Analytics & Insights
+- Performance trend charts
+- Historical rating data
+- Feedback tracking
+- Individual employee analytics
+
+### 🔒 Security
+- Password-protected admin access
+- Sensitive data protection
+- Secure rating sessions
+
+## Tech Stack
+
+- **Frontend**: React + TypeScript + Vite
+- **Styling**: Tailwind CSS with Material 3 Expressive design
+- **Icons**: Lucide React
+- **Charts**: Recharts
+- **Backend**: JSON Server (for development)
+
+## Getting Started
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) (v18.0.0 or higher)
-- [npm](https://www.npmjs.com/)
+- Node.js (v18 or higher)
+- npm or yarn
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd employee-rating-app
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Start the development server**
-   The application uses `concurrently` to run both the frontend and backend servers with a single command:
-   ```bash
-   npm run dev:full
-   ```
-
-The app will be available at `http://localhost:5173` and the API at `http://localhost:3001`.
-
----
-
-## 📂 Project Structure
-
-```text
-├── server/            # Express backend server
-│   ├── data/          # JSON database storage
-│   └── index.js       # Server entry point
-├── src/               # React frontend source
-│   ├── components/    # Modular UI components
-│   ├── services/      # API communication layer
-│   ├── theme/         # Material 3 tokens and styling
-│   └── types/         # TypeScript interfaces
-└── public/            # Static assets
+1. Clone the repository
+```bash
+git clone https://github.com/shravnchandr/Employee-Rating.git
+cd employee-rating-app
 ```
 
+2. Install dependencies
+```bash
+npm install
+```
+
+3. Start the development servers
+```bash
+npm run dev:full
+```
+
+This runs both the frontend (port 5173) and backend (port 3001) concurrently.
+
+### Default Credentials
+- **Admin Password**: `admin123`
+
+## Project Structure
+
+```
+employee-rating-app/
+├── public/
+│   ├── janhavi-logo.jpg          # Company logo
+│   └── janhavi-signage.jpg       # Store signage
+├── src/
+│   ├── components/
+│   │   ├── auth/                 # Login components
+│   │   ├── common/               # Reusable components
+│   │   ├── dashboard/            # Admin dashboard
+│   │   ├── history/              # Rating history
+│   │   ├── rating/               # Rating interface
+│   │   └── trends/               # Analytics charts
+│   ├── services/                 # API services
+│   ├── theme/                    # Material 3 theme config
+│   ├── types/                    # TypeScript definitions
+│   └── App.tsx                   # Main application
+├── server/
+│   └── index.js                  # JSON Server backend
+└── package.json
+```
+
+## Available Scripts
+
+- `npm run dev` - Start frontend only
+- `npm run dev:server` - Start backend only
+- `npm run dev:full` - Start both frontend and backend
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+
+## Design System
+
+### Colors (Ocean Blue & Teal)
+- **Primary**: #0277BD (Ocean Blue)
+- **Secondary**: #00897B (Teal)
+- **Tertiary**: #00ACC1 (Cyan)
+- **Surface**: #F1F8FB (Light Blue)
+- **Backgrounds**: Gradients from #E3F2FD to #B3E5FC
+
+### Typography
+- **Display**: 52px, font-black
+- **Headlines**: 32-36px, font-bold
+- **Titles**: 24px, font-bold
+- **Body**: 14-16px, font-normal
+
+### Shapes
+- **Asymmetric corners** for visual interest
+- **Rounded elements** for approachability
+- **Varied radii** for dynamic layouts
+
+## Contributing
+
+This is a proprietary system for Janhavi Medicals. For internal development inquiries, please contact the IT department.
+
+## License
+
+© 2024 Janhavi Medicals. All rights reserved.
+
 ---
 
-## 🔧 Core Workflows
-
-- **Login**: Accessed via employee name. Admin login uses `admin` as the name.
-- **Rating**: Select an employee, rate across categories (Teamwork, Communication, etc.), and provide optional feedback.
-- **Admin**: Toggle sensitive data with password `admin123` to view weighted scores and historical trends.
-
----
-
-## 📄 License
-
-This project is private and intended for internal use.
+**Janhavi Medicals** - Serving the community since 1984 🏥

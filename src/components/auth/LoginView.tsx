@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Eye, EyeOff, ChevronRight } from 'lucide-react';
+import { Eye, EyeOff, ChevronRight } from 'lucide-react';
 import { THEME } from '../../theme';
 
 interface LoginViewProps {
@@ -19,13 +19,14 @@ export const LoginView: React.FC<LoginViewProps> = ({ adminPassword, setAdminPas
 
             <div className="max-w-md w-full animate-fade-in-up relative z-10">
                 <div className="text-center mb-12 transform hover:scale-105 transition-transform duration-500">
-                    {/* Expressive hero icon with asymmetric shape */}
-                    <div className={`mx-auto w-32 h-32 bg-gradient-to-br from-[#0277BD] to-[#00ACC1] ${THEME.shapes.asymmetric1} flex items-center justify-center mb-8 ${THEME.elevation.high} hover:shadow-2xl ${THEME.animation.spring} hover:scale-110`}>
-                        <Users className="w-16 h-16 text-white" />
+                    {/* Janhavi Medicals Logo */}
+                    <div className={`mx-auto w-40 h-40 bg-white ${THEME.shapes.asymmetric1} flex items-center justify-center mb-8 ${THEME.elevation.high} hover:shadow-2xl ${THEME.animation.spring} hover:scale-110 p-6`}>
+                        <img src="/janhavi-logo.jpg" alt="Janhavi Medicals" className="w-full h-full object-contain" />
                     </div>
-                    {/* Bolder, more expressive typography */}
-                    <h1 className={`${THEME.typography.headlineLarge} text-[#263238] mb-3`}>Welcome Back</h1>
-                    <p className={`${THEME.typography.bodyLarge} text-[#37474F] max-w-xs mx-auto`}>Empowering precise employee evaluation.</p>
+                    {/* Company branding */}
+                    <h1 className={`${THEME.typography.headlineLarge} text-[#263238] mb-2`}>Janhavi Medicals</h1>
+                    <p className={`${THEME.typography.titleMedium} text-[#0277BD] font-bold mb-3`}>Since 1984</p>
+                    <p className={`${THEME.typography.bodyLarge} text-[#37474F] max-w-xs mx-auto`}>Employee Performance Evaluation Portal</p>
                 </div>
 
                 <div className={`bg-white/95 backdrop-blur-sm p-10 ${THEME.shapes.extraLarge} ${THEME.elevation.medium} border border-[#CFE9F3]/50`}>

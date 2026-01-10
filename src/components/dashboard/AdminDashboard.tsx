@@ -115,9 +115,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="min-h-screen bg-[#F1F8FB] p-6 lg:p-10 relative">
             <div className="max-w-[1400px] mx-auto">
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
-                    <div className="animate-fade-in-right">
-                        <h1 className={`${THEME.typography.displayMedium} text-[#263238]`}>Dashboard</h1>
-                        <p className={`${THEME.typography.bodyLarge} text-[#37474F] mt-2`}>Overview of employee performance</p>
+                    <div className="animate-fade-in-right flex items-center gap-4">
+                        <img src="/janhavi-logo.jpg" alt="Janhavi Medicals" className="w-16 h-16 object-contain" />
+                        <div>
+                            <h1 className={`${THEME.typography.displayMedium} text-[#263238]`}>Janhavi Medicals</h1>
+                            <p className={`${THEME.typography.bodyLarge} text-[#37474F] mt-1`}>Employee Performance Dashboard</p>
+                        </div>
                     </div>
                     <div className="flex gap-3 flex-wrap animate-fade-in-left">
                         <button
