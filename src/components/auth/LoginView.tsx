@@ -63,9 +63,9 @@ export const LoginView: React.FC<LoginViewProps> = ({ adminPassword, setAdminPas
                             <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                         </button>
 
-                        <div className="text-center pt-2">
+                        {/* <div className="text-center pt-2">
                             <p className={`${THEME.typography.bodyMedium} text-[#37474F]`}>Default password: <span className="font-semibold">admin123</span></p>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
             </div>
