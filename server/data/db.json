@@ -1,0 +1,132 @@
+{
+  "employees": [
+    {
+      "id": 1709251200000,
+      "name": "Alice Johnson",
+      "photo": null,
+      "avatar": "bg-[#6750A4]"
+    },
+    {
+      "id": 1709251200001,
+      "name": "Bob Smith",
+      "photo": null,
+      "avatar": "bg-[#9C4146]"
+    },
+    {
+      "id": 1709251200002,
+      "name": "Charlie Brown",
+      "photo": null,
+      "avatar": "bg-[#7D5260]"
+    }
+  ],
+  "ratings": [
+    {
+      "id": 1709251200100,
+      "raterId": "admin",
+      "raterName": "Admin",
+      "isAdminRating": true,
+      "ratedEmployeeId": 1709251200000,
+      "category": "Teamwork",
+      "rating": "5",
+      "feedback": "Excellent team player",
+      "timestamp": "2024-03-01T10:00:00.000Z"
+    },
+    {
+      "id": 1709251200101,
+      "raterId": 1709251200001,
+      "raterName": "Bob Smith",
+      "isAdminRating": false,
+      "ratedEmployeeId": 1709251200000,
+      "category": "Communication",
+      "rating": "4",
+      "feedback": "Great communication skills",
+      "timestamp": "2024-03-01T11:00:00.000Z"
+    },
+    {
+      "id": 1768038629342.562,
+      "raterId": 1709251200000,
+      "raterName": "Alice Johnson",
+      "isAdminRating": false,
+      "ratedEmployeeId": 1709251200001,
+      "category": "Teamwork",
+      "rating": "Good",
+      "timestamp": "2026-01-10T09:50:29.342Z"
+    },
+    {
+      "id": 1768038629343.3755,
+      "raterId": 1709251200000,
+      "raterName": "Alice Johnson",
+      "isAdminRating": false,
+      "ratedEmployeeId": 1709251200001,
+      "category": "Communication",
+      "rating": "Good",
+      "timestamp": "2026-01-10T09:50:29.343Z"
+    },
+    {
+      "id": 1768038629343.795,
+      "raterId": 1709251200000,
+      "raterName": "Alice Johnson",
+      "isAdminRating": false,
+      "ratedEmployeeId": 1709251200001,
+      "category": "Quality of Work",
+      "rating": "Excellent",
+      "timestamp": "2026-01-10T09:50:29.343Z"
+    },
+    {
+      "id": 1768038629343.514,
+      "raterId": 1709251200000,
+      "raterName": "Alice Johnson",
+      "isAdminRating": false,
+      "ratedEmployeeId": 1709251200001,
+      "category": "Reliability",
+      "rating": "Excellent",
+      "timestamp": "2026-01-10T09:50:29.343Z"
+    },
+    {
+      "id": 1768038629343.0132,
+      "raterId": 1709251200000,
+      "raterName": "Alice Johnson",
+      "isAdminRating": false,
+      "ratedEmployeeId": 1709251200002,
+      "category": "Teamwork",
+      "rating": "Needs Improvement",
+      "timestamp": "2026-01-10T09:50:29.343Z"
+    },
+    {
+      "id": 1768038629343.1545,
+      "raterId": 1709251200000,
+      "raterName": "Alice Johnson",
+      "isAdminRating": false,
+      "ratedEmployeeId": 1709251200002,
+      "category": "Communication",
+      "rating": "Good",
+      "timestamp": "2026-01-10T09:50:29.343Z"
+    },
+    {
+      "id": 1768038629343.3208,
+      "raterId": 1709251200000,
+      "raterName": "Alice Johnson",
+      "isAdminRating": false,
+      "ratedEmployeeId": 1709251200002,
+      "category": "Quality of Work",
+      "rating": "Excellent",
+      "timestamp": "2026-01-10T09:50:29.343Z"
+    },
+    {
+      "id": 1768038629343.8374,
+      "raterId": 1709251200000,
+      "raterName": "Alice Johnson",
+      "isAdminRating": false,
+      "ratedEmployeeId": 1709251200002,
+      "category": "Reliability",
+      "rating": "Good",
+      "timestamp": "2026-01-10T09:50:29.343Z"
+    }
+  ],
+  "categories": [
+    "Teamwork",
+    "Communication",
+    "Quality of Work",
+    "Reliability"
+  ]
+}
