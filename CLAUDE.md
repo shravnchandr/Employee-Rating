@@ -16,7 +16,7 @@ Requires Node.js v18+.
 
 ## Architecture Overview
 
-Employee management system with a React/TypeScript frontend and Express.js backend. Features include performance ratings, daily task management, attendance tracking, and rules compliance.
+Employee management system with a React/TypeScript frontend and Express.js backend. Features include performance ratings, peer monitoring (rules & tasks), monthly leave management, and data export.
 
 ### Frontend (src/)
 - **State Management**: Centralized in `App.tsx` using React hooks - no external state library
@@ -24,6 +24,7 @@ Employee management system with a React/TypeScript frontend and Express.js backe
 - **Styling**: Tailwind CSS with Material 3 Expressive design system (`src/theme/index.ts`)
 - **Charts**: Recharts for analytics visualization
 - **Icons**: lucide-react
+- **Export**: xlsx (SheetJS) for Excel export
 
 ### Backend (server/)
 - Express.js server with JSON file storage (`server/data/db.json`)
@@ -33,14 +34,15 @@ Employee management system with a React/TypeScript frontend and Express.js backe
 
 ### Data Model
 All data persisted to `server/data/db.json`:
-- `employees` - Staff members with photo (base64) or auto-generated avatar
+- `employees` - Staff members with photo (base64), avatar, and `leavesPerMonth` allocation
 - `ratings` - Performance ratings with weighted scoring (admin 60%, peer 40%)
 - `categories` - Rating categories (Teamwork, Communication, Quality of Work, Reliability)
 - `taskTemplates` - Recurring task definitions assigned to employees
 - `dailyTasks` - Auto-generated daily from active templates
-- `rules` - Compliance rules
-- `violations` - Rule violation records
-- `attendance` - Daily attendance (auto-defaults to "present")
+- `rules` - Compliance rules (active/inactive)
+- `violations` - Rule violations with `reportedBy` and `reporterName` (peer-reported)
+- `taskIncompleteReports` - Tasks reported incomplete by peers during rating
+- `monthlyLeaves` - Monthly leave records with allocated/taken counts and optional dates
 
 ### View Routing
 String-based view state in `App.tsx`: `login` → `adminSelection` → module views (`admin`, `employees`, `tasks`, `rules`, `attendance`) → `employee`/`adminRating` for rating flow.
@@ -50,10 +52,26 @@ String-based view state in `App.tsx`: `login` → `adminSelection` → module vi
 - `src/services/api.ts` - API communication layer
 - `src/theme/index.ts` - Material 3 theme (colors, typography, shapes, animations)
 - `src/types/index.ts` - TypeScript interfaces
+- `src/utils/exportData.ts` - Excel export utility
 
 ## Important Patterns
 - Data auto-saves on state change (after initial load completes via `isDataLoaded` flag)
 - Daily tasks auto-populate from active templates each day
-- Attendance defaults all employees to "present" when viewing a date
-- `markAttendance` in App.tsx prevents duplicate records by checking employee+date
+- **Peer Monitoring**: Rule violations and incomplete tasks are reported by employees during the rating flow (not by admin separately)
+- Admin ratings only collect performance ratings; peer ratings also collect rule violations and task reports
+- Monthly leave records are per-employee per-month with optional specific dates
+- Export generates XLSX with summary + individual employee sheets
 - Admin login password: `admin123`
+
+## Component Structure
+- `src/components/admin/` - Admin selection dashboard
+- `src/components/attendance/` - LeaveTracker (monthly leave management)
+- `src/components/auth/` - Login view
+- `src/components/common/` - Reusable components (FloatingLabelInput, RatingButton)
+- `src/components/dashboard/` - Admin dashboard with employee cards
+- `src/components/employees/` - Employee management (add/remove/edit leaves)
+- `src/components/history/` - Rating history views
+- `src/components/rating/` - Rating flow with peer monitoring
+- `src/components/rules/` - Rules management and violation history
+- `src/components/tasks/` - Task templates and daily tasks view
+- `src/components/trends/` - Performance trend charts
