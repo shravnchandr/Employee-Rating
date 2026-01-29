@@ -24,7 +24,13 @@ if (!fs.existsSync(DB_FILE)) {
     const initialData = {
         employees: [],
         ratings: [],
-        categories: ['Teamwork', 'Communication', 'Quality of Work', 'Reliability']
+        categories: ['Teamwork', 'Communication', 'Quality of Work', 'Reliability'],
+        taskTemplates: [],
+        dailyTasks: [],
+        rules: [],
+        violations: [],
+        monthlyLeaves: [],
+        taskIncompleteReports: []
     };
     fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2));
 }
@@ -34,12 +40,24 @@ const readData = () => {
     try {
         if (fs.existsSync(DB_FILE)) {
             const data = fs.readFileSync(DB_FILE, 'utf8');
-            return JSON.parse(data);
+            const parsed = JSON.parse(data);
+            // Ensure all fields exist for backwards compatibility
+            return {
+                employees: parsed.employees || [],
+                ratings: parsed.ratings || [],
+                categories: parsed.categories || [],
+                taskTemplates: parsed.taskTemplates || [],
+                dailyTasks: parsed.dailyTasks || [],
+                rules: parsed.rules || [],
+                violations: parsed.violations || [],
+                monthlyLeaves: parsed.monthlyLeaves || [],
+                taskIncompleteReports: parsed.taskIncompleteReports || []
+            };
         }
-        return { employees: [], ratings: [], categories: [] };
+        return { employees: [], ratings: [], categories: [], taskTemplates: [], dailyTasks: [], rules: [], violations: [], monthlyLeaves: [], taskIncompleteReports: [] };
     } catch (err) {
         console.error('Error reading DB:', err);
-        return { employees: [], ratings: [], categories: [] };
+        return { employees: [], ratings: [], categories: [], taskTemplates: [], dailyTasks: [], rules: [], violations: [], monthlyLeaves: [], taskIncompleteReports: [] };
     }
 };
 
@@ -64,13 +82,19 @@ app.get('/api/data', (req, res) => {
 // Save all data
 app.post('/api/save', (req, res) => {
     console.log('POST /api/save');
-    const { employees, ratings, categories } = req.body;
+    const { employees, ratings, categories, taskTemplates, dailyTasks, rules, violations, monthlyLeaves, taskIncompleteReports } = req.body;
     const currentData = readData();
 
     const newData = {
         employees: employees || currentData.employees,
         ratings: ratings || currentData.ratings,
-        categories: categories || currentData.categories
+        categories: categories || currentData.categories,
+        taskTemplates: taskTemplates || currentData.taskTemplates,
+        dailyTasks: dailyTasks || currentData.dailyTasks,
+        rules: rules || currentData.rules,
+        violations: violations || currentData.violations,
+        monthlyLeaves: monthlyLeaves || currentData.monthlyLeaves,
+        taskIncompleteReports: taskIncompleteReports || currentData.taskIncompleteReports
     };
 
     if (writeData(newData)) {
