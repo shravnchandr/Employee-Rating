@@ -1,6 +1,11 @@
 import * as XLSX from 'xlsx';
 import type { Employee, Rating, Rule, RuleViolation, DailyTask, TaskIncompleteReport, MonthlyLeaveRecord } from '../types';
 
+interface DateRange {
+    startDate: string | null;  // ISO date string (YYYY-MM-DD)
+    endDate: string | null;    // ISO date string (YYYY-MM-DD)
+}
+
 interface ExportData {
     employees: Employee[];
     ratings: Rating[];
@@ -10,20 +15,70 @@ interface ExportData {
     taskIncompleteReports: TaskIncompleteReport[];
     monthlyLeaves: MonthlyLeaveRecord[];
     categories: string[];
+    dateRange?: DateRange;
 }
+
+const isWithinDateRange = (dateStr: string, range: DateRange): boolean => {
+    const date = new Date(dateStr).setHours(0, 0, 0, 0);
+    if (range.startDate) {
+        const start = new Date(range.startDate).setHours(0, 0, 0, 0);
+        if (date < start) return false;
+    }
+    if (range.endDate) {
+        const end = new Date(range.endDate).setHours(23, 59, 59, 999);
+        if (date > end) return false;
+    }
+    return true;
+};
+
+const isMonthWithinRange = (monthStr: string, range: DateRange): boolean => {
+    // monthStr format: "YYYY-MM"
+    const [year, month] = monthStr.split('-').map(Number);
+    const monthStart = new Date(year, month - 1, 1);
+    const monthEnd = new Date(year, month, 0); // Last day of month
+
+    if (range.startDate) {
+        const start = new Date(range.startDate);
+        if (monthEnd < start) return false;
+    }
+    if (range.endDate) {
+        const end = new Date(range.endDate);
+        if (monthStart > end) return false;
+    }
+    return true;
+};
 
 export const exportToExcel = (data: ExportData) => {
     const workbook = XLSX.utils.book_new();
     const {
         employees,
-        ratings,
+        ratings: allRatings,
         rules,
-        violations,
-        dailyTasks,
-        taskIncompleteReports,
-        monthlyLeaves,
-        categories
+        violations: allViolations,
+        dailyTasks: allDailyTasks,
+        taskIncompleteReports: allTaskIncompleteReports,
+        monthlyLeaves: allMonthlyLeaves,
+        categories,
+        dateRange
     } = data;
+
+    // Apply date range filter if provided
+    const hasDateRange = dateRange && (dateRange.startDate || dateRange.endDate);
+    const ratings = hasDateRange
+        ? allRatings.filter(r => isWithinDateRange(r.timestamp, dateRange))
+        : allRatings;
+    const violations = hasDateRange
+        ? allViolations.filter(v => isWithinDateRange(v.date, dateRange))
+        : allViolations;
+    const dailyTasks = hasDateRange
+        ? allDailyTasks.filter(t => isWithinDateRange(t.date, dateRange))
+        : allDailyTasks;
+    const taskIncompleteReports = hasDateRange
+        ? allTaskIncompleteReports.filter(r => isWithinDateRange(r.date, dateRange))
+        : allTaskIncompleteReports;
+    const monthlyLeaves = hasDateRange
+        ? allMonthlyLeaves.filter(l => isMonthWithinRange(l.month, dateRange))
+        : allMonthlyLeaves;
 
     // Helper functions
     const getEmployeeName = (id: number) => employees.find(e => e.id === id)?.name || 'Unknown';
@@ -31,9 +86,13 @@ export const exportToExcel = (data: ExportData) => {
     const getTaskName = (id: number) => dailyTasks.find(t => t.id === id)?.name || 'Unknown Task';
 
     // 1. Summary Sheet
+    const dateRangeText = hasDateRange
+        ? `${dateRange.startDate || 'Beginning'} to ${dateRange.endDate || 'Present'}`
+        : 'All Time';
     const summaryData = [
         ['Employee Rating System - Data Export'],
         ['Generated:', new Date().toLocaleString()],
+        ['Date Range:', dateRangeText],
         [''],
         ['Summary Statistics'],
         ['Total Employees:', employees.length],
@@ -211,9 +270,12 @@ export const exportToExcel = (data: ExportData) => {
         XLSX.utils.book_append_sheet(workbook, empSheet, sheetName);
     });
 
-    // Generate filename with date
+    // Generate filename with date (include range if specified)
     const date = new Date().toISOString().split('T')[0];
-    const filename = `employee-data-export-${date}.xlsx`;
+    const rangeStr = hasDateRange
+        ? `-${dateRange.startDate || 'start'}-to-${dateRange.endDate || 'end'}`
+        : '';
+    const filename = `employee-data-export-${date}${rangeStr}.xlsx`;
 
     // Write and download
     XLSX.writeFile(workbook, filename);

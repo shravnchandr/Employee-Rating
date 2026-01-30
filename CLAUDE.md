@@ -10,6 +10,11 @@ npm run dev         # Start frontend only
 npm run server      # Start backend only
 npm run build       # TypeScript compile + Vite build
 npm run lint        # Run ESLint
+
+# Electron Desktop App
+npm run dev:electron    # Dev mode with hot reload
+npm run build:electron  # Build Windows installer
+npm run publish         # Build + publish to GitHub releases (requires GH_TOKEN)
 ```
 
 Requires Node.js v18+.
@@ -32,8 +37,15 @@ Employee management system with a React/TypeScript frontend and Express.js backe
 - Frontend proxies `/api` requests to backend via Vite config
 - Employee photos stored as base64 in db.json (5MB limit enforced in frontend)
 
+### Electron Desktop App (electron/)
+- **Main Process** (`electron/main.js`): Window management, IPC handlers, auto-updater
+- **Preload** (`electron/preload.js`): Secure IPC bridge between main and renderer
+- **Data Manager** (`electron/dataManager.js`): File operations for `%APPDATA%/employee-rating-app/data/db.json`
+- **Auto-updates**: Uses electron-updater with GitHub releases
+- **Security**: Context isolation, sandbox mode, CSP, navigation blocking
+
 ### Data Model
-All data persisted to `server/data/db.json`:
+All data persisted to `server/data/db.json` (or `%APPDATA%` in Electron):
 - `employees` - Staff members with photo (base64), avatar, and `leavesPerMonth` allocation
 - `ratings` - Performance ratings with weighted scoring (admin 60%, peer 40%)
 - `categories` - Rating categories (Teamwork, Communication, Quality of Work, Reliability)
@@ -43,6 +55,7 @@ All data persisted to `server/data/db.json`:
 - `violations` - Rule violations with `reportedBy` and `reporterName` (peer-reported)
 - `taskIncompleteReports` - Tasks reported incomplete by peers during rating
 - `monthlyLeaves` - Monthly leave records with allocated/taken counts and optional dates
+- `adminPassword` - Admin login password (default: `admin123`, changeable via UI)
 
 ### View Routing
 String-based view state in `App.tsx`: `login` → `adminSelection` → module views (`admin`, `employees`, `tasks`, `rules`, `attendance`) → `employee`/`adminRating` for rating flow.
@@ -61,7 +74,7 @@ String-based view state in `App.tsx`: `login` → `adminSelection` → module vi
 - Admin ratings only collect performance ratings; peer ratings also collect rule violations and task reports
 - Monthly leave records are per-employee per-month with optional specific dates
 - Export generates XLSX with summary + individual employee sheets
-- Admin login password: `admin123`
+- Admin password stored in database (default: `admin123`), changeable via "Change Password" in admin dashboard
 
 ## Component Structure
 - `src/components/admin/` - Admin selection dashboard

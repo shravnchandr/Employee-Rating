@@ -30,7 +30,8 @@ if (!fs.existsSync(DB_FILE)) {
         rules: [],
         violations: [],
         monthlyLeaves: [],
-        taskIncompleteReports: []
+        taskIncompleteReports: [],
+        adminPassword: 'admin123'
     };
     fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2));
 }
@@ -51,13 +52,14 @@ const readData = () => {
                 rules: parsed.rules || [],
                 violations: parsed.violations || [],
                 monthlyLeaves: parsed.monthlyLeaves || [],
-                taskIncompleteReports: parsed.taskIncompleteReports || []
+                taskIncompleteReports: parsed.taskIncompleteReports || [],
+                adminPassword: parsed.adminPassword || 'admin123'
             };
         }
-        return { employees: [], ratings: [], categories: [], taskTemplates: [], dailyTasks: [], rules: [], violations: [], monthlyLeaves: [], taskIncompleteReports: [] };
+        return { employees: [], ratings: [], categories: [], taskTemplates: [], dailyTasks: [], rules: [], violations: [], monthlyLeaves: [], taskIncompleteReports: [], adminPassword: 'admin123' };
     } catch (err) {
         console.error('Error reading DB:', err);
-        return { employees: [], ratings: [], categories: [], taskTemplates: [], dailyTasks: [], rules: [], violations: [], monthlyLeaves: [], taskIncompleteReports: [] };
+        return { employees: [], ratings: [], categories: [], taskTemplates: [], dailyTasks: [], rules: [], violations: [], monthlyLeaves: [], taskIncompleteReports: [], adminPassword: 'admin123' };
     }
 };
 
@@ -82,7 +84,7 @@ app.get('/api/data', (req, res) => {
 // Save all data
 app.post('/api/save', (req, res) => {
     console.log('POST /api/save');
-    const { employees, ratings, categories, taskTemplates, dailyTasks, rules, violations, monthlyLeaves, taskIncompleteReports } = req.body;
+    const { employees, ratings, categories, taskTemplates, dailyTasks, rules, violations, monthlyLeaves, taskIncompleteReports, adminPassword } = req.body;
     const currentData = readData();
 
     const newData = {
@@ -94,7 +96,8 @@ app.post('/api/save', (req, res) => {
         rules: rules || currentData.rules,
         violations: violations || currentData.violations,
         monthlyLeaves: monthlyLeaves || currentData.monthlyLeaves,
-        taskIncompleteReports: taskIncompleteReports || currentData.taskIncompleteReports
+        taskIncompleteReports: taskIncompleteReports || currentData.taskIncompleteReports,
+        adminPassword: adminPassword || currentData.adminPassword
     };
 
     if (writeData(newData)) {

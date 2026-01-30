@@ -23,6 +23,7 @@ const EmployeeRatingApp = () => {
   const [violations, setViolations] = useState<RuleViolation[]>([]);
   const [monthlyLeaves, setMonthlyLeaves] = useState<MonthlyLeaveRecord[]>([]);
   const [taskIncompleteReports, setTaskIncompleteReports] = useState<TaskIncompleteReport[]>([]);
+  const [storedAdminPassword, setStoredAdminPassword] = useState<string>('admin123');
 
   // Admin states
   const [newEmployeeName, setNewEmployeeName] = useState('');
@@ -62,6 +63,7 @@ const EmployeeRatingApp = () => {
       if (data.violations) setViolations(data.violations);
       if (data.monthlyLeaves) setMonthlyLeaves(data.monthlyLeaves);
       if (data.taskIncompleteReports) setTaskIncompleteReports(data.taskIncompleteReports);
+      if (data.adminPassword) setStoredAdminPassword(data.adminPassword);
     } catch (error) {
       console.log('Error loading data:', error);
     } finally {
@@ -80,7 +82,8 @@ const EmployeeRatingApp = () => {
         rules,
         violations,
         monthlyLeaves,
-        taskIncompleteReports
+        taskIncompleteReports,
+        adminPassword: storedAdminPassword
       });
     } catch (error) {
       console.error('Error saving data:', error);
@@ -92,7 +95,7 @@ const EmployeeRatingApp = () => {
     if (isDataLoaded) {
       saveData();
     }
-  }, [employees, ratings, categories, taskTemplates, dailyTasks, rules, violations, monthlyLeaves, taskIncompleteReports, isDataLoaded]);
+  }, [employees, ratings, categories, taskTemplates, dailyTasks, rules, violations, monthlyLeaves, taskIncompleteReports, storedAdminPassword, isDataLoaded]);
 
   // Auto-populate daily tasks from active templates
   useEffect(() => {
@@ -129,12 +132,16 @@ const EmployeeRatingApp = () => {
   }, [taskTemplates, isDataLoaded]);
 
   const handleAdminLogin = () => {
-    if (adminPassword === 'admin123') {
+    if (adminPassword === storedAdminPassword) {
       setView('adminSelection');
       setAdminPassword('');
     } else {
       alert('Incorrect password');
     }
+  };
+
+  const handleChangePassword = (newPassword: string) => {
+    setStoredAdminPassword(newPassword);
   };
 
   // Task template handlers
@@ -432,7 +439,7 @@ const EmployeeRatingApp = () => {
   }
 
   if (view === 'adminSelection') {
-    const handleExport = () => {
+    const handleExport = (dateRange?: { startDate: string | null; endDate: string | null }) => {
       exportToExcel({
         employees,
         ratings,
@@ -441,7 +448,8 @@ const EmployeeRatingApp = () => {
         dailyTasks,
         taskIncompleteReports,
         monthlyLeaves,
-        categories
+        categories,
+        dateRange
       });
     };
 
@@ -454,6 +462,7 @@ const EmployeeRatingApp = () => {
         onSelectAttendance={() => setView('attendance')}
         onExport={handleExport}
         onLogout={() => setView('login')}
+        onChangePassword={handleChangePassword}
       />
     );
   }

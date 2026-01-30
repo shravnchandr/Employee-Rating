@@ -1,0 +1,28 @@
+appId: com.janhavi.employee-rating-app
+productName: Employee Rating App
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**/*
+  - electron/**/*
+  - public/**/*
+  - package.json
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: public/janhavi-logo.jpg
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Employee Rating App
+publish:
+  provider: github
+  owner: shravnchandr
+  repo: Employee-Rating
+  releaseType: release
