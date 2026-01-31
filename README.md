@@ -8,21 +8,24 @@ A modern, Material 3 Expressive design employee performance evaluation system bu
 
 ## About Janhavi Medicals
 
-Janhavi Medicals has been serving the community since 1984, providing quality pharmaceutical services and healthcare products. This employee rating portal helps maintain our high standards by facilitating comprehensive performance evaluations.
+Janhavi Medicals has been serving the community since 1984, providing quality pharmaceutical services and healthcare products. This employee rating portal helps maintain our high standards by facilitating comprehensive performance evaluations conducted periodically (every 3-4 months).
 
 ## Features
 
 ### Employee Management
-- Add, edit, and remove pharmacy staff
+- Add, edit, and archive pharmacy staff
 - Upload and update employee photos
 - Configure default monthly leave allocation per employee
+- Archive employees (soft delete) - data preserved for historical records
+- Restore archived employees when needed
 - Track performance metrics and rankings (sorted by weighted score)
 
 ### Performance Rating System
-- **Admin ratings** (60% weight) - Management evaluations
-- **Peer ratings** (40% weight) - Colleague feedback
+- **Attendance** (50% weight) - Based on leave records
+- **Admin ratings** (30% weight) - Management evaluations
+- **Peer ratings** (20% weight) - Colleague feedback
 - **Weighted scoring** for comprehensive assessment
-- **Category-based evaluation**: Teamwork, Communication, Quality of Work, Reliability
+- **Customizable categories** - Admin can add/remove rating categories (default: Teamwork, Communication, Quality of Work, Reliability)
 
 ### Monitoring (Integrated with Ratings)
 During both admin and peer rating sessions, raters can:
@@ -34,7 +37,7 @@ This monitoring approach provides visibility from multiple perspectives.
 
 ### Rules Compliance
 - Define workplace rules
-- View violations reported by peers
+- View violations reported by peers (violation summary)
 - Track violation history with reporter information
 - Toggle rules active/inactive
 
@@ -54,18 +57,25 @@ This monitoring approach provides visibility from multiple perspectives.
 ### Analytics & Insights
 - Performance trend charts
 - Historical rating data
+- Dashboard statistics (total employees, average score, top performer)
+- Employee search and filter
 - Feedback tracking
 - Individual employee analytics
 
-### Data Export
-- Export all data to Excel (XLSX format)
+### Data Management
+- **Export to Excel** - XLSX format with date filtering
+- **Backup Data** - Download complete JSON backup
+- **Restore Data** - Restore from backup file
 - Summary sheet with statistics
 - Individual sheets for employees, ratings, violations, task reports, leave records
-- Per-employee detailed reports
 
 ### Security
 - Password-protected admin access (changeable via UI)
+- **Password hashing** (SHA-256)
+- **Session timeout** (30 minutes of inactivity)
+- **Rate limiting** (5 login attempts, 5-minute lockout)
 - Secure rating sessions
+- Confirmation dialogs for destructive actions
 
 ### Desktop App (Windows)
 - Standalone Electron application
@@ -124,8 +134,9 @@ employee-rating-app/
 │   │   ├── attendance/           # Leave tracker
 │   │   ├── auth/                 # Login components
 │   │   ├── common/               # Reusable components
-│   │   ├── dashboard/            # Admin dashboard
-│   │   ├── employees/            # Employee management
+│   │   ├── dashboard/            # Admin dashboard with stats & search
+│   │   ├── data/                 # Data management (export/backup/restore)
+│   │   ├── employees/            # Employee management (with archive)
 │   │   ├── history/              # Rating history
 │   │   ├── rating/               # Rating interface
 │   │   ├── rules/                # Rules compliance
@@ -134,7 +145,7 @@ employee-rating-app/
 │   ├── services/                 # API services
 │   ├── theme/                    # Material 3 theme config
 │   ├── types/                    # TypeScript definitions
-│   ├── utils/                    # Utility functions (export)
+│   ├── utils/                    # Utility functions (export, password)
 │   └── App.tsx                   # Main application
 ├── server/
 │   ├── data/
@@ -161,7 +172,7 @@ employee-rating-app/
 ## Data Model
 
 ### Employee
-- ID, Name, Photo, Avatar color, Leaves per month
+- ID, Name, Photo, Avatar color, Leaves per month, isArchived flag
 
 ### Rating
 - Rater info, Rated employee, Category, Rating value, Feedback, Timestamp

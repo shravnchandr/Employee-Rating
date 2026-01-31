@@ -15,9 +15,7 @@ interface RatingViewProps {
     submitFeedback: (value: string) => void;
     currentFeedbacks: Record<number, string>;
     goToNextEmployee: () => void;
-    saveData: () => void;
     onExit: () => void;
-    // New props for rules and tasks
     rules: Rule[];
     dailyTasks: DailyTask[];
     currentViolations: Record<number, number[]>;
@@ -37,7 +35,6 @@ export const RatingView: React.FC<RatingViewProps> = ({
     submitFeedback,
     currentFeedbacks,
     goToNextEmployee,
-    saveData: _saveData,
     onExit,
     rules,
     dailyTasks,
@@ -46,7 +43,6 @@ export const RatingView: React.FC<RatingViewProps> = ({
     onToggleViolation,
     onToggleIncompleteTask
 }) => {
-    void _saveData; // Kept for interface compatibility
 
     const employeeToRate = employeesToRate[currentRatingIndex];
 

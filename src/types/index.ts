@@ -4,6 +4,7 @@ export interface Employee {
     photo: string | null;
     avatar: string;
     leavesPerMonth: number;  // Default leave allocation per month
+    isArchived?: boolean;    // Soft delete - archived employees are hidden but data preserved
 }
 
 export interface Rating {

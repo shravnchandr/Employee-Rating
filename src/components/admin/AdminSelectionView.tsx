@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Star, ClipboardList, LogOut, Users, ShieldAlert, Calendar, Download, X, RefreshCw, Key, Eye, EyeOff } from 'lucide-react';
+import { Star, ClipboardList, LogOut, Users, ShieldAlert, Calendar, X, RefreshCw, Key, Eye, EyeOff, Database } from 'lucide-react';
 import { THEME } from '../../theme';
 import { updaterApi } from '../../services/api';
-
-interface DateRange {
-    startDate: string | null;
-    endDate: string | null;
-}
 
 interface AdminSelectionViewProps {
     onSelectRatings: () => void;
@@ -14,7 +9,7 @@ interface AdminSelectionViewProps {
     onSelectEmployees: () => void;
     onSelectRules: () => void;
     onSelectAttendance: () => void;
-    onExport: (dateRange?: DateRange) => void;
+    onSelectData: () => void;
     onLogout: () => void;
     onChangePassword: (newPassword: string) => void;
 }
@@ -27,14 +22,10 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
     onSelectEmployees,
     onSelectRules,
     onSelectAttendance,
-    onExport,
+    onSelectData,
     onLogout,
     onChangePassword
 }) => {
-    const [showExportModal, setShowExportModal] = useState(false);
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-
     // Password change state
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [newPassword, setNewPassword] = useState('');
@@ -53,7 +44,6 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
     useEffect(() => {
         if (!updaterApi.isElectron()) return;
 
-        // Set up update event listeners
         updaterApi.onUpdateAvailable((info) => {
             setUpdateStatus('available');
             setUpdateVersion(info.version);
@@ -80,7 +70,6 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
             setUpdateError(error);
         });
 
-        // Cleanup listeners on unmount
         return () => {
             updaterApi.removeUpdateListeners();
         };
@@ -91,8 +80,6 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
         setUpdateError('');
         try {
             await updaterApi.checkForUpdates();
-            // If no update is available, the onUpdateNotAvailable listener will fire
-            // If an update is available, the onUpdateAvailable listener will fire
         } catch {
             setUpdateStatus('error');
             setUpdateError('Failed to check for updates');
@@ -107,16 +94,6 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
 
     const handleInstallUpdate = () => {
         updaterApi.installUpdate();
-    };
-
-    const handleExport = () => {
-        const dateRange = (startDate || endDate)
-            ? { startDate: startDate || null, endDate: endDate || null }
-            : undefined;
-        onExport(dateRange);
-        setShowExportModal(false);
-        setStartDate('');
-        setEndDate('');
     };
 
     const handlePasswordChange = () => {
@@ -310,8 +287,8 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
                     </button>
                 </div>
 
-                {/* Second Row - 2 cards centered */}
-                <div className="grid md:grid-cols-2 gap-5 max-w-2xl mx-auto mb-8">
+                {/* Second Row - 3 cards */}
+                <div className="grid md:grid-cols-3 gap-5 mb-8">
                     {/* Ratings Dashboard Card */}
                     <button
                         onClick={onSelectRatings}
@@ -322,7 +299,7 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
                         </div>
                         <h2 className={`${THEME.typography.titleLarge} text-[#263238] mb-1`}>Employee Ratings</h2>
                         <p className={`${THEME.typography.bodyMedium} text-[#37474F] text-sm`}>
-                            Performance evaluations and analytics
+                            Performance evaluations
                         </p>
                     </button>
 
@@ -336,20 +313,27 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
                         </div>
                         <h2 className={`${THEME.typography.titleLarge} text-[#263238] mb-1`}>Daily Tasks</h2>
                         <p className={`${THEME.typography.bodyMedium} text-[#37474F] text-sm`}>
-                            Assign tasks and track completion
+                            Assign and track tasks
+                        </p>
+                    </button>
+
+                    {/* Data Management Card */}
+                    <button
+                        onClick={onSelectData}
+                        className={`bg-white/95 backdrop-blur-sm p-6 ${THEME.shapes.extraLarge} ${THEME.elevation.medium} border border-[#CFE9F3]/50 hover:shadow-2xl ${THEME.animation.spring} hover:scale-[1.02] active:scale-[0.98] text-left group`}
+                    >
+                        <div className={`w-14 h-14 bg-gradient-to-br from-[#1565C0] to-[#42A5F5] ${THEME.shapes.asymmetric2} flex items-center justify-center mb-4 group-hover:scale-110 ${THEME.animation.spring}`}>
+                            <Database className="w-7 h-7 text-white" />
+                        </div>
+                        <h2 className={`${THEME.typography.titleLarge} text-[#263238] mb-1`}>Data Management</h2>
+                        <p className={`${THEME.typography.bodyMedium} text-[#37474F] text-sm`}>
+                            Export, backup & restore
                         </p>
                     </button>
                 </div>
 
-                {/* Export, Change Password, Check for Updates & Logout Buttons */}
+                {/* Bottom Buttons */}
                 <div className="text-center flex justify-center gap-4 flex-wrap">
-                    <button
-                        onClick={() => setShowExportModal(true)}
-                        className={`inline-flex items-center gap-2 px-6 py-3 bg-[#00897B] text-white hover:bg-[#00796B] ${THEME.shapes.full} ${THEME.animation.spring} shadow-md hover:shadow-lg`}
-                    >
-                        <Download className="w-5 h-5" />
-                        <span className={THEME.typography.labelLarge}>Export to Excel</span>
-                    </button>
                     <button
                         onClick={() => setShowPasswordModal(true)}
                         className={`inline-flex items-center gap-2 px-6 py-3 bg-[#546E7A] text-white hover:bg-[#455A64] ${THEME.shapes.full} ${THEME.animation.spring} shadow-md hover:shadow-lg`}
@@ -377,75 +361,9 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
                 </div>
             </div>
 
-            {/* Export Modal */}
-            {showExportModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className={`bg-white ${THEME.shapes.extraLarge} ${THEME.elevation.high} max-w-md w-full p-6 animate-fade-in-up`}>
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className={`${THEME.typography.headlineSmall} text-[#263238]`}>Export Data</h2>
-                            <button
-                                onClick={() => setShowExportModal(false)}
-                                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                            >
-                                <X className="w-5 h-5 text-[#37474F]" />
-                            </button>
-                        </div>
-
-                        <p className={`${THEME.typography.bodyMedium} text-[#37474F] mb-4`}>
-                            Optionally select a date range to filter exported data. Leave empty to export all data.
-                        </p>
-
-                        <div className="space-y-4 mb-6">
-                            <div>
-                                <label className={`block ${THEME.typography.labelLarge} text-[#37474F] mb-2`}>
-                                    Start Date
-                                </label>
-                                <input
-                                    type="date"
-                                    value={startDate}
-                                    onChange={(e) => setStartDate(e.target.value)}
-                                    className={`w-full px-4 py-3 border border-gray-300 ${THEME.shapes.medium} focus:outline-none focus:ring-2 focus:ring-[#00ACC1] focus:border-transparent`}
-                                />
-                            </div>
-                            <div>
-                                <label className={`block ${THEME.typography.labelLarge} text-[#37474F] mb-2`}>
-                                    End Date
-                                </label>
-                                <input
-                                    type="date"
-                                    value={endDate}
-                                    onChange={(e) => setEndDate(e.target.value)}
-                                    min={startDate || undefined}
-                                    className={`w-full px-4 py-3 border border-gray-300 ${THEME.shapes.medium} focus:outline-none focus:ring-2 focus:ring-[#00ACC1] focus:border-transparent`}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => {
-                                    setStartDate('');
-                                    setEndDate('');
-                                }}
-                                className={`flex-1 px-4 py-3 border border-gray-300 text-[#37474F] hover:bg-gray-50 ${THEME.shapes.medium} ${THEME.animation.spring}`}
-                            >
-                                Clear Dates
-                            </button>
-                            <button
-                                onClick={handleExport}
-                                className={`flex-1 px-4 py-3 bg-[#00897B] text-white hover:bg-[#00796B] ${THEME.shapes.medium} ${THEME.animation.spring} flex items-center justify-center gap-2`}
-                            >
-                                <Download className="w-4 h-4" />
-                                Export
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* Change Password Modal */}
             {showPasswordModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
                     <div className={`bg-white ${THEME.shapes.extraLarge} ${THEME.elevation.high} max-w-md w-full p-6 animate-fade-in-up`}>
                         <div className="flex items-center justify-between mb-6">
                             <h2 className={`${THEME.typography.headlineSmall} text-[#263238]`}>Change Password</h2>

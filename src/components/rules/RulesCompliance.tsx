@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { ArrowLeft, Plus, AlertTriangle, Shield, X, Settings, ToggleLeft, ToggleRight, Trash2, Users } from 'lucide-react';
 import { THEME } from '../../theme';
 import { FloatingLabelInput } from '../common/FloatingLabelInput';
@@ -26,12 +26,6 @@ export const RulesCompliance: React.FC<RulesComplianceProps> = ({
     const [activeTab, setActiveTab] = useState<'overview' | 'rules' | 'history'>('overview');
     const [newRuleName, setNewRuleName] = useState('');
 
-    const today = new Date().toISOString().split('T')[0];
-
-    const todaysViolations = useMemo(() => {
-        return violations.filter(v => v.date === today);
-    }, [violations, today]);
-
     const handleAddRule = () => {
         if (newRuleName.trim()) {
             onAddRule({
@@ -50,8 +44,8 @@ export const RulesCompliance: React.FC<RulesComplianceProps> = ({
         return violations.filter(v => v.employeeId === employeeId).length;
     };
 
-    const getTodayViolationCountForEmployee = (employeeId: number) => {
-        return todaysViolations.filter(v => v.employeeId === employeeId).length;
+    const getEmployeeViolations = (employeeId: number) => {
+        return violations.filter(v => v.employeeId === employeeId);
     };
 
     return (
@@ -118,13 +112,13 @@ export const RulesCompliance: React.FC<RulesComplianceProps> = ({
                         <div className={`bg-[#B3E5FC]/30 ${THEME.shapes.extraLarge} p-5 border border-[#B3E5FC]`}>
                             <p className={`${THEME.typography.bodyLarge} text-[#01579B]`}>
                                 <AlertTriangle className="w-5 h-5 inline mr-2" />
-                                Rule violations are now reported by employees during the peer rating process.
-                                This page shows violations reported by colleagues.
+                                Rule violations are reported by employees during the peer rating process (conducted periodically).
+                                This page shows all violations reported by colleagues.
                             </p>
                         </div>
 
-                        {/* Today's Violations by Employee */}
-                        <h2 className={`${THEME.typography.headlineMedium} text-[#263238]`}>Today's Status</h2>
+                        {/* Violation Summary by Employee */}
+                        <h2 className={`${THEME.typography.headlineMedium} text-[#263238]`}>Violation Summary</h2>
                         {employees.length === 0 ? (
                             <div className={`text-center py-12 ${THEME.shapes.extraLarge} bg-white border border-[#CFE9F3]`}>
                                 <p className={`${THEME.typography.bodyLarge} text-[#37474F]`}>No employees found. Add employees first.</p>
@@ -132,15 +126,15 @@ export const RulesCompliance: React.FC<RulesComplianceProps> = ({
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {employees.map((emp, idx) => {
-                                    const todayCount = getTodayViolationCountForEmployee(emp.id);
                                     const totalCount = getViolationCountForEmployee(emp.id);
-                                    const empViolationsToday = todaysViolations.filter(v => v.employeeId === emp.id);
+                                    const empViolations = getEmployeeViolations(emp.id);
+                                    const recentViolations = empViolations.slice(-3).reverse(); // Show last 3 violations
 
                                     return (
                                         <div
                                             key={emp.id}
                                             className={`bg-white ${THEME.shapes.asymmetric2} p-5 ${THEME.elevation.low} border-2 ${
-                                                todayCount > 0 ? 'border-[#FFCDD2]' : 'border-[#B2DFDB]'
+                                                totalCount > 0 ? 'border-[#FFCDD2]' : 'border-[#B2DFDB]'
                                             } animate-fade-in-up`}
                                             style={{ animationDelay: `${idx * 50}ms` }}
                                         >
@@ -154,34 +148,32 @@ export const RulesCompliance: React.FC<RulesComplianceProps> = ({
                                                 )}
                                                 <div className="flex-1">
                                                     <h4 className={`${THEME.typography.titleMedium} text-[#263238]`}>{emp.name}</h4>
-                                                    <p className={`text-xs ${todayCount > 0 ? 'text-[#D32F2F]' : 'text-[#00897B]'}`}>
-                                                        {todayCount > 0 ? `${todayCount} violation${todayCount > 1 ? 's' : ''} today` : 'No violations today'}
+                                                    <p className={`text-xs ${totalCount > 0 ? 'text-[#D32F2F]' : 'text-[#00897B]'}`}>
+                                                        {totalCount > 0 ? `${totalCount} total violation${totalCount > 1 ? 's' : ''}` : 'No violations'}
                                                     </p>
                                                 </div>
                                                 <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                                    todayCount > 0 ? 'bg-[#FFCDD2] text-[#B71C1C]' : 'bg-[#B2DFDB] text-[#004D40]'
+                                                    totalCount > 0 ? 'bg-[#FFCDD2] text-[#B71C1C]' : 'bg-[#B2DFDB] text-[#004D40]'
                                                 }`}>
-                                                    {todayCount > 0 ? <AlertTriangle className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
+                                                    {totalCount > 0 ? <AlertTriangle className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
                                                 </div>
                                             </div>
-                                            {empViolationsToday.length > 0 && (
+                                            {recentViolations.length > 0 && (
                                                 <div className="space-y-1 mt-3 pt-3 border-t border-[#FFCDD2]">
-                                                    {empViolationsToday.map(v => (
+                                                    <p className="text-xs text-[#37474F] mb-1">Recent:</p>
+                                                    {recentViolations.map(v => (
                                                         <div key={v.id} className="text-sm text-[#B71C1C] flex items-start gap-2">
                                                             <X className="w-3 h-3 mt-1 shrink-0" />
                                                             <div>
                                                                 <span>{getRuleName(v.ruleId)}</span>
-                                                                {v.reporterName && (
-                                                                    <span className="text-[#37474F] text-xs ml-1">
-                                                                        (reported by {v.reporterName})
-                                                                    </span>
-                                                                )}
+                                                                <span className="text-[#37474F] text-xs ml-1">
+                                                                    ({v.date})
+                                                                </span>
                                                             </div>
                                                         </div>
                                                     ))}
                                                 </div>
                                             )}
-                                            <p className={`text-xs text-[#37474F] mt-2`}>Total violations: {totalCount}</p>
                                         </div>
                                     );
                                 })}

@@ -47,19 +47,25 @@ Employee management system with a React/TypeScript frontend and Express.js backe
 
 ### Data Model
 All data persisted to `server/data/db.json` (or `%APPDATA%` in Electron):
-- `employees` - Staff members with photo (base64), avatar, and `leavesPerMonth` allocation
-- `ratings` - Performance ratings with weighted scoring (admin 60%, peer 40%)
-- `categories` - Rating categories (Teamwork, Communication, Quality of Work, Reliability)
+- `employees` - Staff members with photo (base64), avatar, `leavesPerMonth` allocation, and `isArchived` flag
+- `ratings` - Performance ratings with weighted scoring (50% attendance, 30% admin, 20% peer)
+- `categories` - Customizable rating categories (default: Teamwork, Communication, Quality of Work, Reliability)
 - `taskTemplates` - Recurring task definitions assigned to employees
 - `dailyTasks` - Auto-generated daily from active templates
 - `rules` - Compliance rules (active/inactive)
 - `violations` - Rule violations with `reportedBy` and `reporterName` (peer-reported)
 - `taskIncompleteReports` - Tasks reported incomplete by peers during rating
 - `monthlyLeaves` - Monthly leave records with allocated/taken counts and optional dates
-- `adminPassword` - Admin login password (default: `admin123`, changeable via UI)
+- `adminPassword` - Hashed admin login password (SHA-256, default: `admin123`, changeable via UI)
 
 ### View Routing
-String-based view state in `App.tsx`: `login` → `adminSelection` → module views (`admin`, `employees`, `tasks`, `rules`, `attendance`) → `employee`/`adminRating` for rating flow.
+String-based view state in `App.tsx`: `login` → `adminSelection` → module views (`admin`, `employees`, `tasks`, `rules`, `attendance`, `data`) → `employee`/`adminRating` for rating flow.
+
+### Security
+- **Password Hashing**: SHA-256 via Web Crypto API (see `src/utils/password.ts`)
+- **Session Timeout**: 30 minutes of inactivity auto-logout
+- **Rate Limiting**: 5 failed login attempts trigger 5-minute lockout
+- Confirmation dialogs for destructive actions
 
 ## Key Files
 - `src/App.tsx` - Main state container, all handlers, view routing
@@ -67,26 +73,31 @@ String-based view state in `App.tsx`: `login` → `adminSelection` → module vi
 - `src/theme/index.ts` - Material 3 theme (colors, typography, shapes, animations)
 - `src/types/index.ts` - TypeScript interfaces
 - `src/utils/exportData.ts` - Excel export utility
+- `src/utils/password.ts` - Password hashing (SHA-256)
 
 ## Important Patterns
 - Data auto-saves on state change (after initial load completes via `isDataLoaded` flag)
 - Daily tasks auto-populate from active templates each day
 - **Peer Monitoring**: Rule violations and incomplete tasks can be reported during both admin and peer rating flows
+- **Score Weightage**: 50% attendance (based on leaves), 30% admin ratings, 20% peer ratings
 - Employee rankings in the ratings dashboard are sorted by weighted score (highest first)
 - Monthly leave records are per-employee per-month with optional specific dates
-- Export generates XLSX with summary + individual employee sheets
-- Admin password stored in database (default: `admin123`), changeable via "Change Password" in admin dashboard
-- Employees can be edited (name, photo) after creation via the Manage Employees section
+- **Data Management**: Dedicated module for Export (XLSX), Backup (JSON), and Restore operations
+- **Employee Archive**: Soft delete pattern - archived employees hidden from active views but data preserved
+- **Category Management**: Admin can add/remove rating categories from the Employee Ratings dashboard
+- Admin password hashed with SHA-256, changeable via "Change Password" in admin dashboard
+- Ratings conducted periodically (every 3-4 months), not daily
 
 ## Component Structure
-- `src/components/admin/` - Admin selection dashboard
+- `src/components/admin/` - Admin selection dashboard (module navigation)
 - `src/components/attendance/` - LeaveTracker (monthly leave management)
-- `src/components/auth/` - Login view
+- `src/components/auth/` - Login view with rate limiting
 - `src/components/common/` - Reusable components (FloatingLabelInput, RatingButton)
-- `src/components/dashboard/` - Admin dashboard with employee cards
-- `src/components/employees/` - Employee management (add/remove/edit name, photo, leaves)
+- `src/components/dashboard/` - Employee ratings view with stats, search, and category management
+- `src/components/data/` - Data Management (export/backup/restore)
+- `src/components/employees/` - Employee management with archive/restore functionality
 - `src/components/history/` - Rating history views
 - `src/components/rating/` - Rating flow with peer monitoring
-- `src/components/rules/` - Rules management and violation history
+- `src/components/rules/` - Rules management and violation summary
 - `src/components/tasks/` - Task templates and daily tasks view
 - `src/components/trends/` - Performance trend charts

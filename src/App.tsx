@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { Employee, Rating, TaskTemplate, DailyTask, Rule, RuleViolation, MonthlyLeaveRecord, TaskIncompleteReport } from './types';
 import { LoginView } from './components/auth/LoginView';
 import { AdminSelectionView } from './components/admin/AdminSelectionView';
@@ -8,8 +8,14 @@ import { DailyTasksDashboard } from './components/tasks/DailyTasksDashboard';
 import { RulesCompliance } from './components/rules/RulesCompliance';
 import { LeaveTracker } from './components/attendance/LeaveTracker';
 import { RatingView } from './components/rating/RatingView';
+import { DataManagement } from './components/data/DataManagement';
 import { api } from './services/api';
 import { exportToExcel } from './utils/exportData';
+import { hashPassword, verifyPassword } from './utils/password';
+
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 
 const EmployeeRatingApp = () => {
   const [view, setView] = useState('login');
@@ -41,11 +47,22 @@ const EmployeeRatingApp = () => {
 
   // Animations & UI States
   const [animating, setAnimating] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Security states
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
+  const lastActivityRef = useRef<number>(Date.now());
+  const sessionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   // New Views State
   const [viewTrendsFor, setViewTrendsFor] = useState<number | null>(null);
   const [viewHistoryFor, setViewHistoryFor] = useState<number | null>(null);
+
+  // Filter out archived employees for active views
+  const activeEmployees = employees.filter(e => !e.isArchived);
+  const archivedEmployees = employees.filter(e => e.isArchived);
 
   useEffect(() => {
     loadData();
@@ -115,7 +132,7 @@ const EmployeeRatingApp = () => {
 
       if (!existingTask && template.assignedTo) {
         newTasks.push({
-          id: Date.now() + Math.random(),
+          id: Date.now() + Math.floor(Math.random() * 10000),
           templateId: template.id,
           name: template.name,
           description: template.description,
@@ -131,18 +148,80 @@ const EmployeeRatingApp = () => {
     }
   }, [taskTemplates, isDataLoaded]);
 
-  const handleAdminLogin = () => {
-    if (adminPassword === storedAdminPassword) {
-      setView('adminSelection');
-      setAdminPassword('');
-    } else {
-      alert('Incorrect password');
+  // Session timeout management
+  const resetSessionTimeout = useCallback(() => {
+    lastActivityRef.current = Date.now();
+    if (sessionTimeoutRef.current) {
+      clearTimeout(sessionTimeoutRef.current);
+    }
+    if (view !== 'login') {
+      sessionTimeoutRef.current = setTimeout(() => {
+        setView('login');
+        alert('Session expired due to inactivity. Please log in again.');
+      }, SESSION_TIMEOUT_MS);
+    }
+  }, [view]);
+
+  // Reset session timeout on user activity
+  useEffect(() => {
+    const handleActivity = () => resetSessionTimeout();
+    window.addEventListener('click', handleActivity);
+    window.addEventListener('keypress', handleActivity);
+    return () => {
+      window.removeEventListener('click', handleActivity);
+      window.removeEventListener('keypress', handleActivity);
+      if (sessionTimeoutRef.current) {
+        clearTimeout(sessionTimeoutRef.current);
+      }
+    };
+  }, [resetSessionTimeout]);
+
+  const handleAdminLogin = async () => {
+    // Check for lockout
+    if (lockoutUntil && Date.now() < lockoutUntil) {
+      const remainingSeconds = Math.ceil((lockoutUntil - Date.now()) / 1000);
+      alert(`Too many failed attempts. Please wait ${remainingSeconds} seconds.`);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const isValid = await verifyPassword(adminPassword, storedAdminPassword);
+      if (isValid) {
+        setView('adminSelection');
+        setAdminPassword('');
+        setLoginAttempts(0);
+        setLockoutUntil(null);
+        resetSessionTimeout();
+      } else {
+        const newAttempts = loginAttempts + 1;
+        setLoginAttempts(newAttempts);
+        if (newAttempts >= MAX_LOGIN_ATTEMPTS) {
+          setLockoutUntil(Date.now() + LOCKOUT_DURATION_MS);
+          alert(`Too many failed attempts. Locked out for 5 minutes.`);
+        } else {
+          alert(`Incorrect password. ${MAX_LOGIN_ATTEMPTS - newAttempts} attempts remaining.`);
+        }
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleChangePassword = (newPassword: string) => {
-    setStoredAdminPassword(newPassword);
+  const handleChangePassword = async (newPassword: string) => {
+    setIsLoading(true);
+    try {
+      const hashedPassword = await hashPassword(newPassword);
+      setStoredAdminPassword(hashedPassword);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  // Password verification function for child components
+  const verifyStoredPassword = useCallback(async (password: string): Promise<boolean> => {
+    return verifyPassword(password, storedAdminPassword);
+  }, [storedAdminPassword]);
 
   // Task template handlers
   const addTaskTemplate = (template: Omit<TaskTemplate, 'id'>) => {
@@ -213,7 +292,7 @@ const EmployeeRatingApp = () => {
       // Create new record
       const newRecord: MonthlyLeaveRecord = {
         ...record,
-        id: Date.now() + Math.random()
+        id: Date.now() + Math.floor(Math.random() * 10000)
       };
       return [...prev, newRecord];
     });
@@ -223,6 +302,64 @@ const EmployeeRatingApp = () => {
     setEmployees(prev => prev.map(e =>
       e.id === employeeId ? { ...e, leavesPerMonth: leaves } : e
     ));
+  };
+
+  // Category management
+  const addCategory = (category: string) => {
+    if (!categories.includes(category)) {
+      setCategories([...categories, category]);
+    }
+  };
+
+  const removeCategory = (category: string) => {
+    setCategories(categories.filter(c => c !== category));
+  };
+
+  // Backup/Restore functions
+  const handleBackup = () => {
+    const backupData = {
+      employees,
+      ratings,
+      categories,
+      taskTemplates,
+      dailyTasks,
+      rules,
+      violations,
+      monthlyLeaves,
+      taskIncompleteReports,
+      adminPassword: storedAdminPassword,
+      backupDate: new Date().toISOString(),
+      version: '1.2'
+    };
+
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `janhavi-medicals-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleRestore = (jsonContent: string) => {
+    try {
+      const data = JSON.parse(jsonContent);
+      if (data.employees) setEmployees(data.employees);
+      if (data.ratings) setRatings(data.ratings);
+      if (data.categories) setCategories(data.categories);
+      if (data.taskTemplates) setTaskTemplates(data.taskTemplates);
+      if (data.dailyTasks) setDailyTasks(data.dailyTasks);
+      if (data.rules) setRules(data.rules);
+      if (data.violations) setViolations(data.violations);
+      if (data.monthlyLeaves) setMonthlyLeaves(data.monthlyLeaves);
+      if (data.taskIncompleteReports) setTaskIncompleteReports(data.taskIncompleteReports);
+      if (data.adminPassword) setStoredAdminPassword(data.adminPassword);
+    } catch (error) {
+      console.error('Error restoring data:', error);
+      alert('Failed to restore data. The backup file may be corrupted.');
+    }
   };
 
   const startRatingForEmployee = (employee: Employee) => {
@@ -281,10 +418,13 @@ const EmployeeRatingApp = () => {
   };
 
   const removeEmployee = (id: number) => {
-    if (confirm('Are you sure you want to remove this employee?')) {
-      setEmployees(employees.filter(e => e.id !== id));
-      setRatings(ratings.filter(r => r.ratedEmployeeId !== id && r.raterId !== id));
+    if (confirm('Are you sure you want to archive this employee? Their data will be preserved but they will be hidden from active views.')) {
+      setEmployees(employees.map(e => e.id === id ? { ...e, isArchived: true } : e));
     }
+  };
+
+  const restoreEmployee = (id: number) => {
+    setEmployees(employees.map(e => e.id === id ? { ...e, isArchived: false } : e));
   };
 
   const updateEmployee = (id: number, updates: { name?: string; photo?: string | null }) => {
@@ -301,7 +441,7 @@ const EmployeeRatingApp = () => {
     }));
   };
 
-  const employeesToRate = isAdminRating ? employees : employees.filter(e => e.id !== currentRater?.id);
+  const employeesToRate = isAdminRating ? activeEmployees : activeEmployees.filter(e => e.id !== currentRater?.id);
 
   const submitCategoryRating = (category: string, value: string) => {
     const employeeToRate = employeesToRate[currentRatingIndex];
@@ -371,7 +511,7 @@ const EmployeeRatingApp = () => {
       const employeeId = parseInt(employeeIdStr);
       Object.keys(ratingsToSave[employeeId]).forEach(category => {
         newRatingEntries.push({
-          id: Date.now() + Math.random(),
+          id: Date.now() + Math.floor(Math.random() * 10000),
           raterId: reporterId,
           raterName: reporterName,
           isAdminRating: isAdminRating,
@@ -392,7 +532,7 @@ const EmployeeRatingApp = () => {
         const ruleIds = currentViolations[employeeId] || [];
         ruleIds.forEach(ruleId => {
           newViolations.push({
-            id: Date.now() + Math.random(),
+            id: Date.now() + Math.floor(Math.random() * 10000),
             employeeId: employeeId,
             ruleId: ruleId,
             date: today,
@@ -412,7 +552,7 @@ const EmployeeRatingApp = () => {
         const taskIds = currentIncompleteTasks[employeeId] || [];
         taskIds.forEach(taskId => {
           newTaskReports.push({
-            id: Date.now() + Math.random(),
+            id: Date.now() + Math.floor(Math.random() * 10000),
             taskId: taskId,
             employeeId: employeeId,
             reportedBy: currentRater!.id,
@@ -448,11 +588,29 @@ const EmployeeRatingApp = () => {
         adminPassword={adminPassword}
         setAdminPassword={setAdminPassword}
         handleAdminLogin={handleAdminLogin}
+        isLoading={isLoading}
+        lockoutUntil={lockoutUntil}
+        attemptsRemaining={MAX_LOGIN_ATTEMPTS - loginAttempts}
       />
     );
   }
 
   if (view === 'adminSelection') {
+    return (
+      <AdminSelectionView
+        onSelectRatings={() => setView('admin')}
+        onSelectTasks={() => setView('tasks')}
+        onSelectEmployees={() => setView('employees')}
+        onSelectRules={() => setView('rules')}
+        onSelectAttendance={() => setView('attendance')}
+        onSelectData={() => setView('data')}
+        onLogout={() => setView('login')}
+        onChangePassword={handleChangePassword}
+      />
+    );
+  }
+
+  if (view === 'data') {
     const handleExport = (dateRange?: { startDate: string | null; endDate: string | null }) => {
       exportToExcel({
         employees,
@@ -468,15 +626,11 @@ const EmployeeRatingApp = () => {
     };
 
     return (
-      <AdminSelectionView
-        onSelectRatings={() => setView('admin')}
-        onSelectTasks={() => setView('tasks')}
-        onSelectEmployees={() => setView('employees')}
-        onSelectRules={() => setView('rules')}
-        onSelectAttendance={() => setView('attendance')}
+      <DataManagement
         onExport={handleExport}
-        onLogout={() => setView('login')}
-        onChangePassword={handleChangePassword}
+        onBackup={handleBackup}
+        onRestore={handleRestore}
+        onBack={() => setView('adminSelection')}
       />
     );
   }
@@ -484,7 +638,8 @@ const EmployeeRatingApp = () => {
   if (view === 'employees') {
     return (
       <EmployeeManagement
-        employees={employees}
+        employees={activeEmployees}
+        archivedEmployees={archivedEmployees}
         newEmployeeName={newEmployeeName}
         setNewEmployeeName={setNewEmployeeName}
         newEmployeePhoto={newEmployeePhoto}
@@ -493,6 +648,7 @@ const EmployeeRatingApp = () => {
         setNewEmployeeLeavesPerMonth={setNewEmployeeLeavesPerMonth}
         addEmployee={addEmployee}
         removeEmployee={removeEmployee}
+        restoreEmployee={restoreEmployee}
         updateEmployee={updateEmployee}
         updateEmployeeLeavesPerMonth={updateEmployeeLeavesPerMonth}
         onBack={() => setView('adminSelection')}
@@ -503,8 +659,10 @@ const EmployeeRatingApp = () => {
   if (view === 'admin') {
     return (
       <AdminDashboard
-        employees={employees}
+        employees={activeEmployees}
         ratings={ratings}
+        monthlyLeaves={monthlyLeaves}
+        verifyPassword={verifyStoredPassword}
         startAdminRating={startAdminRating}
         startRatingForEmployee={startRatingForEmployee}
         onBack={() => setView('adminSelection')}
@@ -512,6 +670,9 @@ const EmployeeRatingApp = () => {
         setViewTrendsFor={setViewTrendsFor}
         viewHistoryFor={viewHistoryFor}
         setViewHistoryFor={setViewHistoryFor}
+        categories={categories}
+        onAddCategory={addCategory}
+        onRemoveCategory={removeCategory}
       />
     );
   }
@@ -519,7 +680,7 @@ const EmployeeRatingApp = () => {
   if (view === 'tasks') {
     return (
       <DailyTasksDashboard
-        employees={employees}
+        employees={activeEmployees}
         taskTemplates={taskTemplates}
         dailyTasks={dailyTasks}
         taskIncompleteReports={taskIncompleteReports}
@@ -535,7 +696,7 @@ const EmployeeRatingApp = () => {
   if (view === 'rules') {
     return (
       <RulesCompliance
-        employees={employees}
+        employees={activeEmployees}
         rules={rules}
         violations={violations}
         onAddRule={addRule}
@@ -549,7 +710,7 @@ const EmployeeRatingApp = () => {
   if (view === 'attendance') {
     return (
       <LeaveTracker
-        employees={employees}
+        employees={activeEmployees}
         monthlyLeaves={monthlyLeaves}
         onAddOrUpdateMonthlyLeave={addOrUpdateMonthlyLeave}
         onUpdateEmployeeLeavesPerMonth={updateEmployeeLeavesPerMonth}
@@ -575,7 +736,6 @@ const EmployeeRatingApp = () => {
         submitFeedback={submitFeedback}
         currentFeedbacks={currentFeedbacks}
         goToNextEmployee={goToNextEmployee}
-        saveData={saveData}
         onExit={() => setView('admin')}
         rules={activeRules}
         dailyTasks={todaysTasks}

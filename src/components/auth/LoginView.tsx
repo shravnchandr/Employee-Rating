@@ -1,15 +1,43 @@
-import React, { useState } from 'react';
-import { Eye, EyeOff, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Eye, EyeOff, ChevronRight, Loader2 } from 'lucide-react';
 import { THEME } from '../../theme';
 
 interface LoginViewProps {
     adminPassword: string;
     setAdminPassword: (password: string) => void;
     handleAdminLogin: () => void;
+    isLoading?: boolean;
+    lockoutUntil?: number | null;
+    attemptsRemaining?: number;
 }
 
-export const LoginView: React.FC<LoginViewProps> = ({ adminPassword, setAdminPassword, handleAdminLogin }) => {
+export const LoginView: React.FC<LoginViewProps> = ({
+    adminPassword,
+    setAdminPassword,
+    handleAdminLogin,
+    isLoading = false,
+    lockoutUntil = null,
+    attemptsRemaining = 5
+}) => {
     const [showPassword, setShowPassword] = useState(false);
+    const [lockoutSeconds, setLockoutSeconds] = useState(0);
+
+    // Update lockout countdown
+    useEffect(() => {
+        if (lockoutUntil && lockoutUntil > Date.now()) {
+            const updateCountdown = () => {
+                const remaining = Math.ceil((lockoutUntil - Date.now()) / 1000);
+                setLockoutSeconds(Math.max(0, remaining));
+            };
+            updateCountdown();
+            const interval = setInterval(updateCountdown, 1000);
+            return () => clearInterval(interval);
+        } else {
+            setLockoutSeconds(0);
+        }
+    }, [lockoutUntil]);
+
+    const isLockedOut = lockoutSeconds > 0;
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#E3F2FD] via-[#F1F8FB] to-[#B3E5FC] flex items-center justify-center p-6 relative overflow-hidden">
@@ -54,18 +82,33 @@ export const LoginView: React.FC<LoginViewProps> = ({ adminPassword, setAdminPas
                             </button>
                         </div>
 
-                        {/* More prominent, expressive button */}
+                        {/* Login button */}
                         <button
                             onClick={handleAdminLogin}
-                            className={`w-full ${THEME.colors.primary} ${THEME.shapes.full} py-5 px-8 ${THEME.typography.labelLarge} text-lg ${THEME.elevation.medium} hover:shadow-2xl ${THEME.animation.spring} hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 group`}
+                            disabled={isLoading || isLockedOut}
+                            className={`w-full ${THEME.colors.primary} ${THEME.shapes.full} py-5 px-8 ${THEME.typography.labelLarge} text-lg ${THEME.elevation.medium} hover:shadow-2xl ${THEME.animation.spring} hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100`}
                         >
-                            <span>Access Dashboard</span>
-                            <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="w-6 h-6 animate-spin" />
+                                    <span>Verifying...</span>
+                                </>
+                            ) : isLockedOut ? (
+                                <span>Locked ({lockoutSeconds}s)</span>
+                            ) : (
+                                <>
+                                    <span>Access Dashboard</span>
+                                    <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                                </>
+                            )}
                         </button>
 
-                        {/* <div className="text-center pt-2">
-                            <p className={`${THEME.typography.bodyMedium} text-[#37474F]`}>Default password: <span className="font-semibold">admin123</span></p>
-                        </div> */}
+                        {/* Attempts remaining warning */}
+                        {attemptsRemaining < 5 && attemptsRemaining > 0 && !isLockedOut && (
+                            <p className={`${THEME.typography.bodyMedium} text-[#D32F2F] text-center`}>
+                                {attemptsRemaining} attempt{attemptsRemaining !== 1 ? 's' : ''} remaining
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>

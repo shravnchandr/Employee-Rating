@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Plus, Check, Upload, Users, X, Calendar, Pencil } from 'lucide-react';
+import { ArrowLeft, Plus, Check, Upload, Users, X, Calendar, Pencil, Archive, RotateCcw } from 'lucide-react';
 import { THEME } from '../../theme';
 import { FloatingLabelInput } from '../common/FloatingLabelInput';
 import type { Employee } from '../../types';
 
 interface EmployeeManagementProps {
     employees: Employee[];
+    archivedEmployees?: Employee[];
     newEmployeeName: string;
     setNewEmployeeName: (name: string) => void;
     newEmployeePhoto: string;
@@ -14,6 +15,7 @@ interface EmployeeManagementProps {
     setNewEmployeeLeavesPerMonth: (leaves: number) => void;
     addEmployee: () => void;
     removeEmployee: (id: number) => void;
+    restoreEmployee?: (id: number) => void;
     updateEmployee: (id: number, updates: { name?: string; photo?: string | null }) => void;
     updateEmployeeLeavesPerMonth: (employeeId: number, leaves: number) => void;
     onBack: () => void;
@@ -21,6 +23,7 @@ interface EmployeeManagementProps {
 
 export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({
     employees,
+    archivedEmployees = [],
     newEmployeeName,
     setNewEmployeeName,
     newEmployeePhoto,
@@ -29,10 +32,12 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({
     setNewEmployeeLeavesPerMonth,
     addEmployee,
     removeEmployee,
+    restoreEmployee,
     updateEmployee,
     updateEmployeeLeavesPerMonth,
     onBack
 }) => {
+    const [showArchived, setShowArchived] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
     const [editName, setEditName] = useState('');
     const [editPhoto, setEditPhoto] = useState<string | null>(null);
@@ -227,10 +232,10 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({
                                         <button
                                             onClick={() => removeEmployee(emp.id)}
                                             className={`text-[#D32F2F] bg-[#FFCDD2]/10 hover:bg-[#FFCDD2]/30 ${THEME.shapes.full} px-4 py-2.5 text-sm font-medium transition-colors flex items-center gap-2`}
-                                            title="Remove Employee"
+                                            title="Archive Employee"
                                         >
-                                            <X className="w-4 h-4" />
-                                            <span className="hidden sm:inline">Remove</span>
+                                            <Archive className="w-4 h-4" />
+                                            <span className="hidden sm:inline">Archive</span>
                                         </button>
                                     </div>
                                 </div>
@@ -238,6 +243,58 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({
                         )}
                     </div>
                 </div>
+
+                {/* Archived Employees Section */}
+                {archivedEmployees.length > 0 && (
+                    <div className="mt-10">
+                        <button
+                            onClick={() => setShowArchived(!showArchived)}
+                            className={`flex items-center gap-2 ${THEME.typography.titleMedium} text-[#37474F] hover:text-[#0277BD] transition-colors mb-4`}
+                        >
+                            <Archive className="w-5 h-5" />
+                            Archived Employees ({archivedEmployees.length})
+                            <span className={`transform transition-transform ${showArchived ? 'rotate-180' : ''}`}>▼</span>
+                        </button>
+
+                        {showArchived && (
+                            <div className="space-y-4 animate-fade-in">
+                                {archivedEmployees.map((emp, idx) => (
+                                    <div
+                                        key={emp.id}
+                                        className={`bg-gray-100 ${THEME.shapes.asymmetric2} p-6 ${THEME.elevation.low} border-2 border-gray-200 flex flex-col sm:flex-row gap-6 items-center opacity-75`}
+                                        style={{ animationDelay: `${idx * 50}ms` }}
+                                    >
+                                        <div className="relative shrink-0">
+                                            {emp.photo ? (
+                                                <img src={emp.photo} alt={emp.name} className="w-16 h-16 rounded-full object-cover shadow-sm bg-gray-50 aspect-square grayscale" />
+                                            ) : (
+                                                <div className={`w-16 h-16 rounded-full bg-gray-400 flex items-center justify-center text-white text-xl font-bold shadow-sm aspect-square`}>
+                                                    {emp.name.charAt(0).toUpperCase()}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex-1 w-full text-center sm:text-left">
+                                            <h3 className={`${THEME.typography.titleLarge} text-gray-500 truncate`}>{emp.name}</h3>
+                                            <span className={`text-sm text-gray-400`}>Archived</span>
+                                        </div>
+
+                                        {restoreEmployee && (
+                                            <button
+                                                onClick={() => restoreEmployee(emp.id)}
+                                                className={`text-[#0277BD] bg-[#B3E5FC]/20 hover:bg-[#B3E5FC]/40 ${THEME.shapes.full} px-4 py-2.5 text-sm font-medium transition-colors flex items-center gap-2`}
+                                                title="Restore Employee"
+                                            >
+                                                <RotateCcw className="w-4 h-4" />
+                                                <span className="hidden sm:inline">Restore</span>
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Edit Employee Modal */}
