@@ -85,18 +85,47 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             peerScore = peerRatings.reduce((acc, r) => acc + (values[r.rating] || 0), 0) / peerRatings.length;
         }
 
-        if (adminRatings.length === 0 && peerRatings.length === 0) return { weighted: 0, admin: 0, peer: 0, hasAdminRating: false, hasPeerRating: false };
-        if (adminRatings.length > 0 && peerRatings.length === 0) return { weighted: adminScore.toFixed(2), admin: adminScore.toFixed(2), peer: 0, hasAdminRating: true, hasPeerRating: false };
-        if (adminRatings.length === 0 && peerRatings.length > 0) return { weighted: peerScore.toFixed(2), admin: 0, peer: peerScore.toFixed(2), hasAdminRating: false, hasPeerRating: true };
+        if (adminRatings.length === 0 && peerRatings.length === 0) return { weighted: 0, weightedNum: 0, admin: 0, peer: 0, hasAdminRating: false, hasPeerRating: false };
+        if (adminRatings.length > 0 && peerRatings.length === 0) return { weighted: adminScore.toFixed(2), weightedNum: adminScore, admin: adminScore.toFixed(2), peer: 0, hasAdminRating: true, hasPeerRating: false };
+        if (adminRatings.length === 0 && peerRatings.length > 0) return { weighted: peerScore.toFixed(2), weightedNum: peerScore, admin: 0, peer: peerScore.toFixed(2), hasAdminRating: false, hasPeerRating: true };
 
+        const weightedScore = (adminScore * 0.6) + (peerScore * 0.4);
         return {
-            weighted: ((adminScore * 0.6) + (peerScore * 0.4)).toFixed(2),
+            weighted: weightedScore.toFixed(2),
+            weightedNum: weightedScore,
             admin: adminScore.toFixed(2),
             peer: peerScore.toFixed(2),
             hasAdminRating: true,
             hasPeerRating: true
         };
     };
+
+    // Sort employees by weighted score (highest first)
+    const sortedEmployees = React.useMemo(() => {
+        const values: Record<string, number> = { 'Needs Improvement': 1, 'Good': 2, 'Excellent': 3 };
+
+        const getScore = (employeeId: number): number => {
+            const adminRatings = ratings.filter(r => r.ratedEmployeeId === employeeId && r.isAdminRating);
+            const peerRatings = ratings.filter(r => r.ratedEmployeeId === employeeId && !r.isAdminRating);
+
+            let adminScore = 0;
+            if (adminRatings.length > 0) {
+                adminScore = adminRatings.reduce((acc, r) => acc + (values[r.rating] || 0), 0) / adminRatings.length;
+            }
+
+            let peerScore = 0;
+            if (peerRatings.length > 0) {
+                peerScore = peerRatings.reduce((acc, r) => acc + (values[r.rating] || 0), 0) / peerRatings.length;
+            }
+
+            if (adminRatings.length === 0 && peerRatings.length === 0) return 0;
+            if (adminRatings.length > 0 && peerRatings.length === 0) return adminScore;
+            if (adminRatings.length === 0 && peerRatings.length > 0) return peerScore;
+            return (adminScore * 0.6) + (peerScore * 0.4);
+        };
+
+        return [...employees].sort((a, b) => getScore(b.id) - getScore(a.id));
+    }, [employees, ratings]);
 
     return (
         <div className="min-h-screen bg-[#F1F8FB] p-6 lg:p-10 relative">
@@ -147,7 +176,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <p className={`${THEME.typography.bodyLarge} text-[#37474F] max-w-xs mx-auto`}>Add employees from the Manage Employees section first.</p>
                         </div>
                     ) : (
-                        employees.map((emp, idx) => {
+                        sortedEmployees.map((emp, idx) => {
                             const scores = calculateWeightedScore(emp.id);
 
                             return (
@@ -172,7 +201,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <div className="flex-1 w-full text-center sm:text-left">
                                         <div className="flex items-center justify-center sm:justify-start gap-3 mb-1">
                                             <h3 className={`${THEME.typography.titleLarge} text-[#263238] truncate`}>{emp.name}</h3>
-                                            <div className="bg-[#E0E0E0] text-[#37474F] px-2 py-0.5 rounded-[4px] text-xs font-medium">#{emp.id.toString().slice(-4)}</div>
                                         </div>
 
                                         {showSensitiveData ? (

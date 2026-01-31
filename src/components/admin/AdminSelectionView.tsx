@@ -93,7 +93,7 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
             await updaterApi.checkForUpdates();
             // If no update is available, the onUpdateNotAvailable listener will fire
             // If an update is available, the onUpdateAvailable listener will fire
-        } catch (error) {
+        } catch {
             setUpdateStatus('error');
             setUpdateError('Failed to check for updates');
         }
