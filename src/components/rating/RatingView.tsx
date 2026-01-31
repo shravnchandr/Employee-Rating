@@ -37,7 +37,7 @@ export const RatingView: React.FC<RatingViewProps> = ({
     submitFeedback,
     currentFeedbacks,
     goToNextEmployee,
-    saveData,
+    saveData: _saveData,
     onExit,
     rules,
     dailyTasks,
@@ -46,15 +46,20 @@ export const RatingView: React.FC<RatingViewProps> = ({
     onToggleViolation,
     onToggleIncompleteTask
 }) => {
-    if (employeesToRate.length === 0) return null;
+    void _saveData; // Kept for interface compatibility
+
     const employeeToRate = employeesToRate[currentRatingIndex];
-    const isLastEmployee = currentRatingIndex === employeesToRate.length - 1;
-    const currentEmployeeRatings = currentRatings[employeeToRate.id] || {};
 
     // Get tasks assigned to current employee being rated
     const employeeTasks = useMemo(() => {
+        if (!employeeToRate) return [];
         return dailyTasks.filter(task => task.assignedTo === employeeToRate.id);
-    }, [dailyTasks, employeeToRate.id]);
+    }, [dailyTasks, employeeToRate]);
+
+    if (employeesToRate.length === 0 || !employeeToRate) return null;
+
+    const isLastEmployee = currentRatingIndex === employeesToRate.length - 1;
+    const currentEmployeeRatings = currentRatings[employeeToRate.id] || {};
 
     // Get current violations for this employee
     const selectedViolations = currentViolations[employeeToRate.id] || [];
@@ -67,9 +72,6 @@ export const RatingView: React.FC<RatingViewProps> = ({
             <div className={`max-w-2xl w-full bg-white ${THEME.shapes.extraLarge} p-8 shadow-[0_4px_20px_0px_rgba(0,0,0,0.05)] border border-[#CFE9F3] transition-all duration-300 ${animating ? 'opacity-0 scale-95 translate-y-4' : 'opacity-100 scale-100 translate-y-0'}`}>
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
-                    <button onClick={saveData} className="text-[#37474F] hover:bg-[#CFE9F3] p-2.5 rounded-full transition-colors">
-                        <span className="font-semibold text-xs tracking-wider">EXIT</span>
-                    </button>
                     <div className={`px-4 py-1.5 bg-[#B3E5FC]/50 border border-[#B3E5FC] rounded-full text-[#01579B] text-sm font-medium`}>
                         {currentRatingIndex + 1} of {employeesToRate.length}
                     </div>
@@ -152,8 +154,8 @@ export const RatingView: React.FC<RatingViewProps> = ({
                     ))}
                 </div>
 
-                {/* Rules Compliance Section - Only for peer ratings */}
-                {!isAdminRating && rules.length > 0 && (
+                {/* Rules Compliance Section */}
+                {rules.length > 0 && (
                     <div className="mb-8 pt-6 border-t border-[#CFE9F3]">
                         <h3 className={`${THEME.typography.titleLarge} text-[#263238] flex items-center gap-2 mb-4`}>
                             <AlertTriangle className="w-5 h-5 text-[#D32F2F]" />
@@ -197,8 +199,8 @@ export const RatingView: React.FC<RatingViewProps> = ({
                     </div>
                 )}
 
-                {/* Daily Tasks Section - Only for peer ratings */}
-                {!isAdminRating && employeeTasks.length > 0 && (
+                {/* Daily Tasks Section */}
+                {employeeTasks.length > 0 && (
                     <div className="mb-8 pt-6 border-t border-[#CFE9F3]">
                         <h3 className={`${THEME.typography.titleLarge} text-[#263238] flex items-center gap-2 mb-4`}>
                             <ClipboardList className="w-5 h-5 text-[#E65100]" />
@@ -245,8 +247,8 @@ export const RatingView: React.FC<RatingViewProps> = ({
                     </div>
                 )}
 
-                {/* Feedback Box - Employees Only (Visible after all ratings) */}
-                {!isAdminRating && allCategoriesRated && (
+                {/* Feedback Box (Visible after all ratings) */}
+                {allCategoriesRated && (
                     <div className="mb-8 pt-6 border-t border-[#CFE9F3] animate-fade-in">
                         <h3 className={`${THEME.typography.titleMedium} text-[#263238] mb-3`}>Additional Feedback (Optional)</h3>
                         <textarea
