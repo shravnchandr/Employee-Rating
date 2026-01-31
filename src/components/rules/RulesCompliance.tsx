@@ -67,7 +67,7 @@ export const RulesCompliance: React.FC<RulesComplianceProps> = ({
                             <ArrowLeft className="w-6 h-6 text-[#37474F]" />
                         </button>
                         <div className="flex items-center gap-4">
-                            <img src="/janhavi-logo.jpg" alt="Janhavi Medicals" className="w-16 h-16 object-contain" />
+                            <img src="./janhavi-logo.jpg" alt="Janhavi Medicals" className="w-16 h-16 object-contain" />
                             <div>
                                 <h1 className={`${THEME.typography.displayMedium} text-[#263238]`}>Rules Compliance</h1>
                                 <p className={`${THEME.typography.bodyLarge} text-[#37474F] mt-1`}>Manage rules and view violations reported by peers</p>

@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, session, shell } = require('electron');
 const path = require('path');
 const { autoUpdater } = require('electron-updater');
-const { readData, writeData, ensureDataFile } = require('./dataManager');
+const { readData, writeData, ensureDataFile } = require('./dataManager.cjs');
 
 let mainWindow = null;
 
@@ -53,7 +53,7 @@ function createWindow() {
         minWidth: 800,
         minHeight: 600,
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
+            preload: path.join(__dirname, 'preload.cjs'),
             // Security settings
             contextIsolation: true,        // Isolate renderer from Node.js
             nodeIntegration: false,        // Disable Node.js in renderer

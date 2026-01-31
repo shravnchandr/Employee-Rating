@@ -44,7 +44,7 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({
                             <ArrowLeft className="w-6 h-6 text-[#37474F]" />
                         </button>
                         <div className="flex items-center gap-4">
-                            <img src="/janhavi-logo.jpg" alt="Janhavi Medicals" className="w-16 h-16 object-contain" />
+                            <img src="./janhavi-logo.jpg" alt="Janhavi Medicals" className="w-16 h-16 object-contain" />
                             <div>
                                 <h1 className={`${THEME.typography.displayMedium} text-[#263238]`}>Manage Employees</h1>
                                 <p className={`${THEME.typography.bodyLarge} text-[#37474F] mt-1`}>Add or remove pharmacy staff members</p>

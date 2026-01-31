@@ -21,7 +21,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ adminPassword, setAdminPas
                 <div className="text-center mb-12 transform hover:scale-105 transition-transform duration-500">
                     {/* Janhavi Medicals Logo */}
                     <div className={`mx-auto w-40 h-40 bg-white ${THEME.shapes.asymmetric1} flex items-center justify-center mb-8 ${THEME.elevation.high} hover:shadow-2xl ${THEME.animation.spring} hover:scale-110 p-6`}>
-                        <img src="/janhavi-logo.jpg" alt="Janhavi Medicals" className="w-full h-full object-contain" />
+                        <img src="./janhavi-logo.jpg" alt="Janhavi Medicals" className="w-full h-full object-contain" />
                     </div>
                     {/* Company branding */}
                     <h1 className={`${THEME.typography.headlineLarge} text-[#263238] mb-2`}>Janhavi Medicals</h1>

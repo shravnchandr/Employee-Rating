@@ -109,7 +109,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         >
                             <ArrowLeft className="w-6 h-6 text-[#37474F]" />
                         </button>
-                        <img src="/janhavi-logo.jpg" alt="Janhavi Medicals" className="w-16 h-16 object-contain" />
+                        <img src="./janhavi-logo.jpg" alt="Janhavi Medicals" className="w-16 h-16 object-contain" />
                         <div>
                             <h1 className={`${THEME.typography.displayMedium} text-[#263238]`}>Employee Ratings</h1>
                             <p className={`${THEME.typography.bodyLarge} text-[#37474F] mt-1`}>Performance evaluations and analytics</p>

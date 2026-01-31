@@ -48,6 +48,7 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
     const [updateVersion, setUpdateVersion] = useState<string>('');
     const [downloadProgress, setDownloadProgress] = useState<number>(0);
     const [updateError, setUpdateError] = useState<string>('');
+    const [showNoUpdateMessage, setShowNoUpdateMessage] = useState(false);
 
     useEffect(() => {
         if (!updaterApi.isElectron()) return;
@@ -59,6 +60,10 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
         });
 
         updaterApi.onUpdateNotAvailable(() => {
+            if (updateStatus === 'checking') {
+                setShowNoUpdateMessage(true);
+                setTimeout(() => setShowNoUpdateMessage(false), 3000);
+            }
             setUpdateStatus('idle');
         });
 
@@ -80,6 +85,19 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
             updaterApi.removeUpdateListeners();
         };
     }, []);
+
+    const handleCheckForUpdates = async () => {
+        setUpdateStatus('checking');
+        setUpdateError('');
+        try {
+            await updaterApi.checkForUpdates();
+            // If no update is available, the onUpdateNotAvailable listener will fire
+            // If an update is available, the onUpdateAvailable listener will fire
+        } catch (error) {
+            setUpdateStatus('error');
+            setUpdateError('Failed to check for updates');
+        }
+    };
 
     const handleDownloadUpdate = async () => {
         setUpdateStatus('downloading');
@@ -203,10 +221,32 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
             );
         }
 
+        if (updateStatus === 'checking') {
+            return (
+                <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-[#0277BD] to-[#00ACC1] text-white py-3 px-4 flex items-center justify-center gap-4 z-50 shadow-lg">
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    <span className={THEME.typography.bodyMedium}>
+                        Checking for updates...
+                    </span>
+                </div>
+            );
+        }
+
+        if (showNoUpdateMessage) {
+            return (
+                <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-[#00897B] to-[#00ACC1] text-white py-3 px-4 flex items-center justify-center gap-4 z-50 shadow-lg">
+                    <RefreshCw className="w-5 h-5" />
+                    <span className={THEME.typography.bodyMedium}>
+                        You're running the latest version!
+                    </span>
+                </div>
+            );
+        }
+
         return null;
     };
 
-    const bannerVisible = updateStatus !== 'idle' && updateStatus !== 'checking' && updaterApi.isElectron();
+    const bannerVisible = (updateStatus !== 'idle' || showNoUpdateMessage) && updaterApi.isElectron();
 
     return (
         <div className={`min-h-screen bg-gradient-to-br from-[#E3F2FD] via-[#F1F8FB] to-[#B3E5FC] flex items-center justify-center p-6 relative overflow-hidden ${bannerVisible ? 'pt-20' : ''}`}>
@@ -301,7 +341,7 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
                     </button>
                 </div>
 
-                {/* Export, Change Password & Logout Buttons */}
+                {/* Export, Change Password, Check for Updates & Logout Buttons */}
                 <div className="text-center flex justify-center gap-4 flex-wrap">
                     <button
                         onClick={() => setShowExportModal(true)}
@@ -317,6 +357,16 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
                         <Key className="w-5 h-5" />
                         <span className={THEME.typography.labelLarge}>Change Password</span>
                     </button>
+                    {updaterApi.isElectron() && (
+                        <button
+                            onClick={handleCheckForUpdates}
+                            disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
+                            className={`inline-flex items-center gap-2 px-6 py-3 bg-[#0277BD] text-white hover:bg-[#01579B] disabled:opacity-50 disabled:cursor-not-allowed ${THEME.shapes.full} ${THEME.animation.spring} shadow-md hover:shadow-lg`}
+                        >
+                            <RefreshCw className={`w-5 h-5 ${updateStatus === 'checking' ? 'animate-spin' : ''}`} />
+                            <span className={THEME.typography.labelLarge}>Check for Updates</span>
+                        </button>
+                    )}
                     <button
                         onClick={onLogout}
                         className={`inline-flex items-center gap-2 px-6 py-3 text-[#37474F] hover:text-[#0277BD] hover:bg-white/50 ${THEME.shapes.full} ${THEME.animation.spring}`}
