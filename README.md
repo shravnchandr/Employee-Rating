@@ -13,10 +13,10 @@ Janhavi Medicals has been serving the community since 1984, providing quality ph
 ## Features
 
 ### Employee Management
-- Add and manage pharmacy staff
-- Upload employee photos
+- Add, edit, and remove pharmacy staff
+- Upload and update employee photos
 - Configure default monthly leave allocation per employee
-- Track performance metrics and rankings
+- Track performance metrics and rankings (sorted by weighted score)
 
 ### Performance Rating System
 - **Admin ratings** (60% weight) - Management evaluations
@@ -24,12 +24,13 @@ Janhavi Medicals has been serving the community since 1984, providing quality ph
 - **Weighted scoring** for comprehensive assessment
 - **Category-based evaluation**: Teamwork, Communication, Quality of Work, Reliability
 
-### Peer Monitoring (Integrated with Ratings)
-When employees rate their colleagues, they can also:
+### Monitoring (Integrated with Ratings)
+During both admin and peer rating sessions, raters can:
 - **Report Rule Violations** - Select rules that may have been broken
 - **Report Incomplete Tasks** - Flag tasks that weren't completed
+- **Provide Feedback** - Optional text feedback for each employee
 
-This peer-monitoring approach provides visibility without requiring constant admin supervision.
+This monitoring approach provides visibility from multiple perspectives.
 
 ### Rules Compliance
 - Define workplace rules
@@ -63,8 +64,14 @@ This peer-monitoring approach provides visibility without requiring constant adm
 - Per-employee detailed reports
 
 ### Security
-- Password-protected admin access
+- Password-protected admin access (changeable via UI)
 - Secure rating sessions
+
+### Desktop App (Windows)
+- Standalone Electron application
+- Auto-updates via GitHub releases
+- Manual "Check for Updates" button
+- Local data storage in AppData
 
 ## Tech Stack
 
@@ -74,6 +81,7 @@ This peer-monitoring approach provides visibility without requiring constant adm
 - **Charts**: Recharts
 - **Export**: SheetJS (xlsx)
 - **Backend**: Express.js with JSON file storage
+- **Desktop**: Electron with electron-builder and electron-updater
 
 ## Getting Started
 
@@ -132,6 +140,10 @@ employee-rating-app/
 │   ├── data/
 │   │   └── db.json               # JSON database (auto-created)
 │   └── index.js                  # Express backend
+├── electron/
+│   ├── main.cjs                  # Electron main process
+│   ├── preload.cjs               # Secure IPC bridge
+│   └── dataManager.cjs           # Local file operations
 └── package.json
 ```
 
@@ -142,6 +154,9 @@ employee-rating-app/
 - `npm run dev:full` - Start both frontend and backend
 - `npm run build` - Build for production
 - `npm run lint` - Run ESLint
+- `npm run dev:electron` - Run Electron app in dev mode
+- `npm run build:electron` - Build Windows installer
+- `npm run publish` - Build and publish to GitHub releases
 
 ## Data Model
 
