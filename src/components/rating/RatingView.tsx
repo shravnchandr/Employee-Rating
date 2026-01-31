@@ -162,7 +162,7 @@ export const RatingView: React.FC<RatingViewProps> = ({
                             Rule Violations
                         </h3>
                         <p className={`${THEME.typography.bodyMedium} text-[#37474F] mb-4`}>
-                            Select any rules this employee may have broken today:
+                            Select any rules this employee may have broken:
                         </p>
                         <div className="space-y-2">
                             {rules.map(rule => {
@@ -207,7 +207,7 @@ export const RatingView: React.FC<RatingViewProps> = ({
                             Task Completion
                         </h3>
                         <p className={`${THEME.typography.bodyMedium} text-[#37474F] mb-4`}>
-                            Select any tasks this employee did NOT complete today:
+                            Select any tasks this employee did NOT complete:
                         </p>
                         <div className="space-y-2">
                             {employeeTasks.map(task => {

@@ -28,3 +28,4 @@ server/data/db.json
 
 # Electron build output
 release/
+run_command.txt
