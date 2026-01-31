@@ -287,6 +287,20 @@ const EmployeeRatingApp = () => {
     }
   };
 
+  const updateEmployee = (id: number, updates: { name?: string; photo?: string | null }) => {
+    setEmployees(employees.map(emp => {
+      if (emp.id === id) {
+        const updatedEmp = { ...emp, ...updates };
+        // Update avatar if name changed
+        if (updates.name && updates.name !== emp.name) {
+          updatedEmp.avatar = generateAvatar(updates.name);
+        }
+        return updatedEmp;
+      }
+      return emp;
+    }));
+  };
+
   const employeesToRate = isAdminRating ? employees : employees.filter(e => e.id !== currentRater?.id);
 
   const submitCategoryRating = (category: string, value: string) => {
@@ -479,6 +493,7 @@ const EmployeeRatingApp = () => {
         setNewEmployeeLeavesPerMonth={setNewEmployeeLeavesPerMonth}
         addEmployee={addEmployee}
         removeEmployee={removeEmployee}
+        updateEmployee={updateEmployee}
         updateEmployeeLeavesPerMonth={updateEmployeeLeavesPerMonth}
         onBack={() => setView('adminSelection')}
       />
