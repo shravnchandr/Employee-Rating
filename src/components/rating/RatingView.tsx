@@ -247,18 +247,16 @@ export const RatingView: React.FC<RatingViewProps> = ({
                     </div>
                 )}
 
-                {/* Feedback Box (Visible after all ratings) */}
-                {allCategoriesRated && (
-                    <div className="mb-8 pt-6 border-t border-[#CFE9F3] animate-fade-in">
-                        <h3 className={`${THEME.typography.titleMedium} text-[#263238] mb-3`}>Additional Feedback (Optional)</h3>
-                        <textarea
-                            className={`w-full p-4 bg-white border border-[#CFE9F3] ${THEME.shapes.large} text-[#263238] placeholder-[#546E7A] focus:outline-none focus:border-[#0277BD] focus:ring-1 focus:ring-[#0277BD] transition-all min-h-[100px] resize-none hover:border-[#546E7A]`}
-                            placeholder="Share your thoughts on their performance..."
-                            value={currentFeedbacks[employeeToRate.id] || ''}
-                            onChange={(e) => submitFeedback(e.target.value)}
-                        />
-                    </div>
-                )}
+                {/* Feedback Box (Always visible) */}
+                <div className="mb-8 pt-6 border-t border-[#CFE9F3]">
+                    <h3 className={`${THEME.typography.titleMedium} text-[#263238] mb-3`}>Additional Feedback (Optional)</h3>
+                    <textarea
+                        className={`w-full p-4 bg-white border border-[#CFE9F3] ${THEME.shapes.large} text-[#263238] placeholder-[#546E7A] focus:outline-none focus:border-[#0277BD] focus:ring-1 focus:ring-[#0277BD] transition-all min-h-[100px] resize-none hover:border-[#546E7A]`}
+                        placeholder="Share your thoughts on their performance..."
+                        value={currentFeedbacks[employeeToRate.id] || ''}
+                        onChange={(e) => submitFeedback(e.target.value)}
+                    />
+                </div>
 
                 {/* Footer */}
                 <div className="pt-6 border-t border-[#CFE9F3] w-full">
