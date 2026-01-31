@@ -38,11 +38,12 @@ Employee management system with a React/TypeScript frontend and Express.js backe
 - Employee photos stored as base64 in db.json (5MB limit enforced in frontend)
 
 ### Electron Desktop App (electron/)
-- **Main Process** (`electron/main.js`): Window management, IPC handlers, auto-updater
-- **Preload** (`electron/preload.js`): Secure IPC bridge between main and renderer
-- **Data Manager** (`electron/dataManager.js`): File operations for `%APPDATA%/employee-rating-app/data/db.json`
-- **Auto-updates**: Uses electron-updater with GitHub releases
+- **Main Process** (`electron/main.cjs`): Window management, IPC handlers, auto-updater
+- **Preload** (`electron/preload.cjs`): Secure IPC bridge between main and renderer
+- **Data Manager** (`electron/dataManager.cjs`): File operations for `%APPDATA%/employee-rating-app/data/db.json`
+- **Auto-updates**: Uses electron-updater with GitHub releases; manual "Check for Updates" button in admin dashboard
 - **Security**: Context isolation, sandbox mode, CSP, navigation blocking
+- **Note**: Electron files use `.cjs` extension for CommonJS compatibility with `"type": "module"` in package.json
 
 ### Data Model
 All data persisted to `server/data/db.json` (or `%APPDATA%` in Electron):
@@ -70,11 +71,12 @@ String-based view state in `App.tsx`: `login` → `adminSelection` → module vi
 ## Important Patterns
 - Data auto-saves on state change (after initial load completes via `isDataLoaded` flag)
 - Daily tasks auto-populate from active templates each day
-- **Peer Monitoring**: Rule violations and incomplete tasks are reported by employees during the rating flow (not by admin separately)
-- Admin ratings only collect performance ratings; peer ratings also collect rule violations and task reports
+- **Peer Monitoring**: Rule violations and incomplete tasks can be reported during both admin and peer rating flows
+- Employee rankings in the ratings dashboard are sorted by weighted score (highest first)
 - Monthly leave records are per-employee per-month with optional specific dates
 - Export generates XLSX with summary + individual employee sheets
 - Admin password stored in database (default: `admin123`), changeable via "Change Password" in admin dashboard
+- Employees can be edited (name, photo) after creation via the Manage Employees section
 
 ## Component Structure
 - `src/components/admin/` - Admin selection dashboard
@@ -82,7 +84,7 @@ String-based view state in `App.tsx`: `login` → `adminSelection` → module vi
 - `src/components/auth/` - Login view
 - `src/components/common/` - Reusable components (FloatingLabelInput, RatingButton)
 - `src/components/dashboard/` - Admin dashboard with employee cards
-- `src/components/employees/` - Employee management (add/remove/edit leaves)
+- `src/components/employees/` - Employee management (add/remove/edit name, photo, leaves)
 - `src/components/history/` - Rating history views
 - `src/components/rating/` - Rating flow with peer monitoring
 - `src/components/rules/` - Rules management and violation history
