@@ -65,8 +65,6 @@ export const RatingView: React.FC<RatingViewProps> = ({
     const selectedViolations = currentViolations[employeeToRate.id] || [];
     const selectedIncompleteTasks = currentIncompleteTasks[employeeToRate.id] || [];
 
-    const allCategoriesRated = categories.every(cat => currentEmployeeRatings[cat]);
-
     return (
         <div className="min-h-screen bg-[#F1F8FB] flex flex-col items-center justify-start p-6 py-10 overflow-y-auto">
             <div className={`max-w-2xl w-full bg-white ${THEME.shapes.extraLarge} p-8 shadow-[0_4px_20px_0px_rgba(0,0,0,0.05)] border border-[#CFE9F3] transition-all duration-300 ${animating ? 'opacity-0 scale-95 translate-y-4' : 'opacity-100 scale-100 translate-y-0'}`}>
