@@ -23,7 +23,7 @@ export interface TaskTemplate {
     id: number;
     name: string;
     description?: string;
-    assignedTo: number | null; // employee id or null for unassigned
+    assignedTo: number[]; // array of employee ids
     isActive: boolean;
 }
 

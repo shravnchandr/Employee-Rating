@@ -74,7 +74,16 @@ const EmployeeRatingApp = () => {
       if (data.employees) setEmployees(data.employees);
       if (data.ratings) setRatings(data.ratings);
       if (data.categories) setCategories(data.categories);
-      if (data.taskTemplates) setTaskTemplates(data.taskTemplates);
+      if (data.taskTemplates) {
+        // Normalize assignedTo to always be an array (backward compatibility with old number | null format)
+        const normalized = data.taskTemplates.map((t: TaskTemplate & { assignedTo: number | number[] | null }) => ({
+          ...t,
+          assignedTo: Array.isArray(t.assignedTo)
+            ? t.assignedTo
+            : t.assignedTo !== null ? [t.assignedTo] : []
+        }));
+        setTaskTemplates(normalized);
+      }
       if (data.dailyTasks) setDailyTasks(data.dailyTasks);
       if (data.rules) setRules(data.rules);
       if (data.violations) setViolations(data.violations);
@@ -122,25 +131,28 @@ const EmployeeRatingApp = () => {
     const todaysTasks = dailyTasks.filter(t => t.date === today);
 
     // Get active templates that don't have tasks created for today
-    const activeTemplates = taskTemplates.filter(t => t.isActive && t.assignedTo);
+    const activeTemplates = taskTemplates.filter(t => t.isActive && t.assignedTo.length > 0);
     const newTasks: DailyTask[] = [];
 
+    const baseId = Date.now();
+    let idOffset = 0;
     activeTemplates.forEach(template => {
-      const existingTask = todaysTasks.find(
-        t => t.templateId === template.id && t.assignedTo === template.assignedTo
-      );
-
-      if (!existingTask && template.assignedTo) {
-        newTasks.push({
-          id: Date.now() + Math.floor(Math.random() * 10000),
-          templateId: template.id,
-          name: template.name,
-          description: template.description,
-          assignedTo: template.assignedTo,
-          date: today,
-          completed: false
-        });
-      }
+      template.assignedTo.forEach(employeeId => {
+        const existingTask = todaysTasks.find(
+          t => t.templateId === template.id && t.assignedTo === employeeId
+        );
+        if (!existingTask) {
+          newTasks.push({
+            id: baseId + idOffset++,
+            templateId: template.id,
+            name: template.name,
+            description: template.description,
+            assignedTo: employeeId,
+            date: today,
+            completed: false
+          });
+        }
+      });
     });
 
     if (newTasks.length > 0) {
@@ -244,6 +256,12 @@ const EmployeeRatingApp = () => {
     ));
   };
 
+  const updateTemplateAssignees = (id: number, assignedTo: number[]) => {
+    setTaskTemplates(prev => prev.map(t =>
+      t.id === id ? { ...t, assignedTo } : t
+    ));
+  };
+
   // Daily task handlers
   const addDailyTask = (task: Omit<DailyTask, 'id'>) => {
     const newTask: DailyTask = {
@@ -315,6 +333,10 @@ const EmployeeRatingApp = () => {
     setCategories(categories.filter(c => c !== category));
   };
 
+  const editCategory = (oldName: string, newName: string) => {
+    setCategories(prev => prev.map(c => c === oldName ? newName : c));
+  };
+
   // Backup/Restore functions
   const handleBackup = () => {
     const backupData = {
@@ -349,7 +371,15 @@ const EmployeeRatingApp = () => {
       if (data.employees) setEmployees(data.employees);
       if (data.ratings) setRatings(data.ratings);
       if (data.categories) setCategories(data.categories);
-      if (data.taskTemplates) setTaskTemplates(data.taskTemplates);
+      if (data.taskTemplates) {
+        const normalized = data.taskTemplates.map((t: TaskTemplate & { assignedTo: number | number[] | null }) => ({
+          ...t,
+          assignedTo: Array.isArray(t.assignedTo)
+            ? t.assignedTo
+            : t.assignedTo !== null ? [t.assignedTo] : []
+        }));
+        setTaskTemplates(normalized);
+      }
       if (data.dailyTasks) setDailyTasks(data.dailyTasks);
       if (data.rules) setRules(data.rules);
       if (data.violations) setViolations(data.violations);
@@ -673,6 +703,7 @@ const EmployeeRatingApp = () => {
         categories={categories}
         onAddCategory={addCategory}
         onRemoveCategory={removeCategory}
+        onEditCategory={editCategory}
       />
     );
   }
@@ -687,6 +718,7 @@ const EmployeeRatingApp = () => {
         onAddTemplate={addTaskTemplate}
         onDeleteTemplate={deleteTaskTemplate}
         onToggleTemplateActive={toggleTemplateActive}
+        onUpdateTemplateAssignees={updateTemplateAssignees}
         onAddDailyTask={addDailyTask}
         onBack={() => setView('adminSelection')}
       />

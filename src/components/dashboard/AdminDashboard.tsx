@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Users, Award, TrendingUp, History, X, Lock, Unlock, Eye, EyeOff, ArrowLeft, Calendar, Search, BarChart3, Star, UserCheck, Settings, Plus, Trash2 } from 'lucide-react';
+import { Shield, Users, Award, TrendingUp, History, X, Lock, Unlock, Eye, EyeOff, ArrowLeft, Calendar, Search, BarChart3, Star, UserCheck, Settings, Plus, Trash2, Pencil, Check } from 'lucide-react';
 import { THEME } from '../../theme';
 import { TrendsView } from '../trends/TrendsView';
 import { GivenRatingsView } from '../history/GivenRatingsView';
@@ -20,6 +20,7 @@ interface AdminDashboardProps {
     categories: string[];
     onAddCategory: (category: string) => void;
     onRemoveCategory: (category: string) => void;
+    onEditCategory: (oldName: string, newName: string) => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -36,7 +37,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setViewHistoryFor,
     categories,
     onAddCategory,
-    onRemoveCategory
+    onRemoveCategory,
+    onEditCategory
 }) => {
 
     const [showSensitiveData, setShowSensitiveData] = React.useState(false);
@@ -52,6 +54,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     // Category management state
     const [showCategoryModal, setShowCategoryModal] = React.useState(false);
     const [newCategory, setNewCategory] = React.useState('');
+    const [editingCategory, setEditingCategory] = React.useState<string | null>(null);
+    const [editCategoryValue, setEditCategoryValue] = React.useState('');
 
     const handleAddCategory = () => {
         if (newCategory.trim()) {
@@ -69,6 +73,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         if (confirm(`Are you sure you want to remove "${category}"? This will not delete existing ratings.`)) {
             onRemoveCategory(category);
         }
+    };
+
+    const handleSaveEditCategory = (oldName: string) => {
+        const trimmed = editCategoryValue.trim();
+        if (trimmed && trimmed !== oldName) {
+            if (categories.includes(trimmed)) {
+                alert('This category already exists');
+                return;
+            }
+            onEditCategory(oldName, trimmed);
+        }
+        setEditingCategory(null);
+        setEditCategoryValue('');
     };
 
     const handleUnlock = async () => {
@@ -563,7 +580,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <div className="flex items-center justify-between mb-6">
                             <h2 className={`${THEME.typography.headlineSmall} text-[#263238]`}>Rating Categories</h2>
                             <button
-                                onClick={() => { setShowCategoryModal(false); setNewCategory(''); }}
+                                onClick={() => { setShowCategoryModal(false); setNewCategory(''); setEditingCategory(null); setEditCategoryValue(''); }}
                                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                             >
                                 <X className="w-5 h-5 text-[#37474F]" />
@@ -603,14 +620,51 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         key={idx}
                                         className={`flex items-center justify-between p-3 bg-gray-50 ${THEME.shapes.small} border border-gray-200`}
                                     >
-                                        <span className={`${THEME.typography.bodyMedium} text-[#263238]`}>{category}</span>
-                                        <button
-                                            onClick={() => handleRemoveCategory(category)}
-                                            className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                                            title="Remove category"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                        {editingCategory === category ? (
+                                            <div className="flex-1 flex items-center gap-2">
+                                                <input
+                                                    value={editCategoryValue}
+                                                    onChange={(e) => setEditCategoryValue(e.target.value)}
+                                                    onKeyPress={(e) => e.key === 'Enter' && handleSaveEditCategory(category)}
+                                                    className={`flex-1 px-3 py-1.5 border-2 border-[#7B1FA2] ${THEME.shapes.small} focus:outline-none text-[#263238] text-sm`}
+                                                    autoFocus
+                                                />
+                                                <button
+                                                    onClick={() => handleSaveEditCategory(category)}
+                                                    className="p-1.5 text-green-600 hover:bg-green-50 rounded-full transition-colors"
+                                                    title="Save"
+                                                >
+                                                    <Check className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => { setEditingCategory(null); setEditCategoryValue(''); }}
+                                                    className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
+                                                    title="Cancel"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <span className={`${THEME.typography.bodyMedium} text-[#263238] flex-1`}>{category}</span>
+                                                <div className="flex gap-1">
+                                                    <button
+                                                        onClick={() => { setEditingCategory(category); setEditCategoryValue(category); }}
+                                                        className="p-2 text-[#7B1FA2] hover:bg-[#F3E5F5] rounded-full transition-colors"
+                                                        title="Edit category"
+                                                    >
+                                                        <Pencil className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleRemoveCategory(category)}
+                                                        className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                                        title="Remove category"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 ))
                             )}
@@ -618,7 +672,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                         <div className="mt-6">
                             <button
-                                onClick={() => { setShowCategoryModal(false); setNewCategory(''); }}
+                                onClick={() => { setShowCategoryModal(false); setNewCategory(''); setEditingCategory(null); setEditCategoryValue(''); }}
                                 className={`w-full px-4 py-3 bg-[#7B1FA2] text-white hover:bg-[#6A1B9A] ${THEME.shapes.medium} ${THEME.animation.spring}`}
                             >
                                 Done

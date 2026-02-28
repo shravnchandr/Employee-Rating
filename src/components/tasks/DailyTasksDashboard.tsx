@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ArrowLeft, Plus, X, ClipboardList, User, Calendar, Settings, Trash2, ToggleLeft, ToggleRight, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Plus, X, ClipboardList, User, Calendar, Settings, Trash2, ToggleLeft, ToggleRight, AlertCircle, Check } from 'lucide-react';
 import { THEME } from '../../theme';
 import { FloatingLabelInput } from '../common/FloatingLabelInput';
 import type { Employee, TaskTemplate, DailyTask, TaskIncompleteReport } from '../../types';
@@ -12,6 +12,7 @@ interface DailyTasksDashboardProps {
     onAddTemplate: (template: Omit<TaskTemplate, 'id'>) => void;
     onDeleteTemplate: (id: number) => void;
     onToggleTemplateActive: (id: number) => void;
+    onUpdateTemplateAssignees: (id: number, assignedTo: number[]) => void;
     onAddDailyTask: (task: Omit<DailyTask, 'id'>) => void;
     onBack: () => void;
 }
@@ -24,15 +25,19 @@ export const DailyTasksDashboard: React.FC<DailyTasksDashboardProps> = ({
     onAddTemplate,
     onDeleteTemplate,
     onToggleTemplateActive,
+    onUpdateTemplateAssignees,
     onAddDailyTask,
     onBack
 }) => {
     const [activeTab, setActiveTab] = useState<'today' | 'templates'>('today');
     const [newTemplateName, setNewTemplateName] = useState('');
-    const [newTemplateAssignee, setNewTemplateAssignee] = useState<number | ''>('');
+    const [newTemplateAssignees, setNewTemplateAssignees] = useState<number[]>([]);
     const [newTaskName, setNewTaskName] = useState('');
     const [newTaskAssignee, setNewTaskAssignee] = useState<number | ''>('');
     const [showAddTask, setShowAddTask] = useState(false);
+    // State for adding employees to existing templates
+    const [addingToTemplate, setAddingToTemplate] = useState<number | null>(null);
+    const [addingEmployeeSelect, setAddingEmployeeSelect] = useState<number | ''>('');
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -53,15 +58,27 @@ export const DailyTasksDashboard: React.FC<DailyTasksDashboardProps> = ({
     }, [todaysTasks, employees]);
 
     const handleAddTemplate = () => {
-        if (newTemplateName.trim() && newTemplateAssignee !== '') {
+        if (newTemplateName.trim()) {
             onAddTemplate({
                 name: newTemplateName.trim(),
-                assignedTo: newTemplateAssignee as number,
+                assignedTo: newTemplateAssignees,
                 isActive: true
             });
             setNewTemplateName('');
-            setNewTemplateAssignee('');
+            setNewTemplateAssignees([]);
         }
+    };
+
+    const handleAddAssigneeToTemplate = (templateId: number, currentAssignees: number[]) => {
+        if (addingEmployeeSelect !== '') {
+            onUpdateTemplateAssignees(templateId, [...currentAssignees, addingEmployeeSelect as number]);
+            setAddingEmployeeSelect('');
+            setAddingToTemplate(null);
+        }
+    };
+
+    const handleRemoveAssigneeFromTemplate = (templateId: number, currentAssignees: number[], employeeId: number) => {
+        onUpdateTemplateAssignees(templateId, currentAssignees.filter(id => id !== employeeId));
     };
 
     const handleAddDailyTask = () => {
@@ -322,13 +339,33 @@ export const DailyTasksDashboard: React.FC<DailyTasksDashboardProps> = ({
 
                                 <div>
                                     <label className={`${THEME.typography.labelLarge} text-[#37474F] mb-2 block`}>Assign To</label>
+                                    {newTemplateAssignees.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 mb-2">
+                                            {newTemplateAssignees.map(id => (
+                                                <span key={id} className="inline-flex items-center gap-1 px-3 py-1 bg-[#B3E5FC] text-[#01579B] rounded-full text-sm font-medium">
+                                                    {getEmployeeName(id)}
+                                                    <button
+                                                        onClick={() => setNewTemplateAssignees(prev => prev.filter(x => x !== id))}
+                                                        className="ml-1 hover:text-[#B71C1C] transition-colors"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
                                     <select
-                                        value={newTemplateAssignee}
-                                        onChange={(e) => setNewTemplateAssignee(e.target.value ? Number(e.target.value) : '')}
+                                        value=""
+                                        onChange={(e) => {
+                                            const val = Number(e.target.value);
+                                            if (val && !newTemplateAssignees.includes(val)) {
+                                                setNewTemplateAssignees(prev => [...prev, val]);
+                                            }
+                                        }}
                                         className={`w-full h-[56px] px-4 bg-white ${THEME.shapes.medium} border-2 border-transparent focus:border-[#0277BD] outline-none text-[#263238]`}
                                     >
-                                        <option value="">Select Employee</option>
-                                        {employees.map(emp => (
+                                        <option value="">{newTemplateAssignees.length === 0 ? 'Select Employee' : 'Add Another Employee...'}</option>
+                                        {employees.filter(emp => !newTemplateAssignees.includes(emp.id)).map(emp => (
                                             <option key={emp.id} value={emp.id}>{emp.name}</option>
                                         ))}
                                     </select>
@@ -336,7 +373,8 @@ export const DailyTasksDashboard: React.FC<DailyTasksDashboardProps> = ({
 
                                 <button
                                     onClick={handleAddTemplate}
-                                    className={`w-full ${THEME.colors.primary} ${THEME.shapes.full} py-3.5 px-6 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all font-medium`}
+                                    disabled={!newTemplateName.trim()}
+                                    className={`w-full ${THEME.colors.primary} ${THEME.shapes.full} py-3.5 px-6 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed`}
                                 >
                                     <Plus className="w-5 h-5" />
                                     Add Template
@@ -366,7 +404,7 @@ export const DailyTasksDashboard: React.FC<DailyTasksDashboardProps> = ({
                                         key={template.id}
                                         className={`bg-white ${THEME.shapes.asymmetric2} p-6 ${THEME.elevation.low} border-2 ${
                                             template.isActive ? 'border-[#B2DFDB]' : 'border-[#CFE9F3]'
-                                        } ${THEME.animation.spring} hover:${THEME.elevation.medium} animate-fade-in-up flex items-center gap-4`}
+                                        } ${THEME.animation.spring} hover:${THEME.elevation.medium} animate-fade-in-up flex items-start gap-4`}
                                         style={{ animationDelay: `${idx * 50}ms` }}
                                     >
                                         <button
@@ -381,13 +419,69 @@ export const DailyTasksDashboard: React.FC<DailyTasksDashboardProps> = ({
                                             )}
                                         </button>
 
-                                        <div className="flex-1">
+                                        <div className="flex-1 min-w-0">
                                             <h3 className={`${THEME.typography.titleLarge} text-[#263238] ${!template.isActive && 'opacity-50'}`}>
                                                 {template.name}
                                             </h3>
-                                            <p className={`${THEME.typography.bodyMedium} text-[#37474F] ${!template.isActive && 'opacity-50'}`}>
-                                                Assigned to: {template.assignedTo ? getEmployeeName(template.assignedTo) : 'Unassigned'}
-                                            </p>
+                                            <div className={`mt-1 flex flex-wrap gap-1 items-center ${!template.isActive && 'opacity-50'}`}>
+                                                {template.assignedTo.length === 0 ? (
+                                                    <span className={`${THEME.typography.bodyMedium} text-[#37474F]`}>Unassigned</span>
+                                                ) : (
+                                                    template.assignedTo.map(empId => (
+                                                        <span key={empId} className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#B3E5FC] text-[#01579B] rounded-full text-xs font-medium">
+                                                            {getEmployeeName(empId)}
+                                                            <button
+                                                                onClick={() => handleRemoveAssigneeFromTemplate(template.id, template.assignedTo, empId)}
+                                                                className="ml-0.5 hover:text-[#B71C1C] transition-colors"
+                                                                title={`Remove ${getEmployeeName(empId)}`}
+                                                            >
+                                                                <X className="w-3 h-3" />
+                                                            </button>
+                                                        </span>
+                                                    ))
+                                                )}
+                                                {/* Add employee button */}
+                                                {employees.filter(e => !template.assignedTo.includes(e.id)).length > 0 && (
+                                                    addingToTemplate === template.id ? (
+                                                        <div className="flex items-center gap-1 mt-1">
+                                                            <select
+                                                                value={addingEmployeeSelect}
+                                                                onChange={(e) => setAddingEmployeeSelect(e.target.value ? Number(e.target.value) : '')}
+                                                                className="h-8 px-2 text-xs border border-[#0277BD] rounded-lg outline-none text-[#263238]"
+                                                                autoFocus
+                                                            >
+                                                                <option value="">Select...</option>
+                                                                {employees.filter(e => !template.assignedTo.includes(e.id)).map(emp => (
+                                                                    <option key={emp.id} value={emp.id}>{emp.name}</option>
+                                                                ))}
+                                                            </select>
+                                                            <button
+                                                                onClick={() => handleAddAssigneeToTemplate(template.id, template.assignedTo)}
+                                                                className="p-1 text-[#0277BD] hover:bg-[#B3E5FC] rounded-full transition-colors"
+                                                                title="Confirm"
+                                                            >
+                                                                <Check className="w-3.5 h-3.5" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => { setAddingToTemplate(null); setAddingEmployeeSelect(''); }}
+                                                                className="p-1 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
+                                                                title="Cancel"
+                                                            >
+                                                                <X className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => { setAddingToTemplate(template.id); setAddingEmployeeSelect(''); }}
+                                                            className="inline-flex items-center gap-0.5 px-2 py-1 border border-dashed border-[#0277BD] text-[#0277BD] rounded-full text-xs hover:bg-[#B3E5FC]/30 transition-colors"
+                                                            title="Add employee"
+                                                        >
+                                                            <Plus className="w-3 h-3" />
+                                                            Add
+                                                        </button>
+                                                    )
+                                                )}
+                                            </div>
                                         </div>
 
                                         <div className="flex gap-2">
