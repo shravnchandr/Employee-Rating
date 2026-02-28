@@ -50,7 +50,7 @@ All data persisted to `server/data/db.json` (or `%APPDATA%` in Electron):
 - `employees` - Staff members with photo (base64), avatar, `leavesPerMonth` allocation, and `isArchived` flag
 - `ratings` - Performance ratings with weighted scoring (50% attendance, 30% admin, 20% peer)
 - `categories` - Customizable rating categories (default: Teamwork, Communication, Quality of Work, Reliability)
-- `taskTemplates` - Recurring task definitions assigned to employees
+- `taskTemplates` - Recurring task definitions; `assignedTo: number[]` (array of employee IDs, supports multiple assignees)
 - `dailyTasks` - Auto-generated daily from active templates
 - `rules` - Compliance rules (active/inactive)
 - `violations` - Rule violations with `reportedBy` and `reporterName` (peer-reported)
@@ -77,14 +77,15 @@ String-based view state in `App.tsx`: `login` → `adminSelection` → module vi
 
 ## Important Patterns
 - Data auto-saves on state change (after initial load completes via `isDataLoaded` flag)
-- Daily tasks auto-populate from active templates each day
+- Daily tasks auto-populate from active templates each day (one task per assigned employee per template)
+- **Multi-assignee Tasks**: `TaskTemplate.assignedTo` is `number[]`; backward compatibility normalizes old `number | null` values on load/restore
 - **Peer Monitoring**: Rule violations and incomplete tasks can be reported during both admin and peer rating flows
 - **Score Weightage**: 50% attendance (based on leaves), 30% admin ratings, 20% peer ratings
 - Employee rankings in the ratings dashboard are sorted by weighted score (highest first)
 - Monthly leave records are per-employee per-month with optional specific dates
 - **Data Management**: Dedicated module for Export (XLSX), Backup (JSON), and Restore operations
 - **Employee Archive**: Soft delete pattern - archived employees hidden from active views but data preserved
-- **Category Management**: Admin can add/remove rating categories from the Employee Ratings dashboard
+- **Category Management**: Admin can add, edit (inline rename), and remove rating categories from the Employee Ratings dashboard
 - Admin password hashed with SHA-256, changeable via "Change Password" in admin dashboard
 - Ratings conducted periodically (every 3-4 months), not daily
 
