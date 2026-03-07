@@ -4,7 +4,7 @@
 
 **Since 1984**
 
-A modern, Material 3 Expressive design employee performance evaluation system built specifically for Janhavi Medicals pharmacy.
+A modern, Material 3 Expressive design employee performance evaluation system built specifically for Janhavi Medicals pharmacy. Current version: **1.5.0**
 
 ## About Janhavi Medicals
 
@@ -16,16 +16,20 @@ Janhavi Medicals has been serving the community since 1984, providing quality ph
 - Add, edit, and archive pharmacy staff
 - Upload and update employee photos
 - Configure default monthly leave allocation per employee
-- Archive employees (soft delete) - data preserved for historical records
+- Archive employees (soft delete) - data preserved for historical records; **undo within 5 seconds**
 - Restore archived employees when needed
 - Track performance metrics and rankings (sorted by weighted score)
+- **Private admin notes** per employee (visible only to admin)
 
 ### Performance Rating System
 - **Attendance** (50% weight) - Based on leave records
 - **Admin ratings** (30% weight) - Management evaluations
 - **Peer ratings** (20% weight) - Colleague feedback
 - **Weighted scoring** for comprehensive assessment
-- **Customizable categories** - Admin can add/remove rating categories (default: Teamwork, Communication, Quality of Work, Reliability)
+- **Customizable categories** - Admin can add, edit, and remove rating categories (default: Teamwork, Communication, Quality of Work, Reliability)
+- **Customizable attendance thresholds** - Configure the % attendance required for Excellent/Good scores
+- **Rating round banner** - Reminds admin when 3+ months have passed since the last rating round
+- **Print/PDF summary** per employee - Formatted report with scores, categories, attendance, and feedback
 
 ### Monitoring (Integrated with Ratings)
 During both admin and peer rating sessions, raters can:
@@ -38,14 +42,16 @@ This monitoring approach provides visibility from multiple perspectives.
 ### Rules Compliance
 - Define workplace rules
 - View violations reported by peers (violation summary)
-- Track violation history with reporter information
+- **Filterable violation history** - Filter by employee and/or date range
 - Toggle rules active/inactive
+- Delete rules with **5-second undo** (no confirm dialog)
 
 ### Daily Tasks
 - Create recurring task templates
 - Auto-generate daily tasks from templates
-- Assign tasks to specific employees
-- View tasks flagged as incomplete by peers
+- Assign tasks to multiple employees simultaneously
+- View tasks flagged as incomplete by peers, including **% of peers who reported each task incomplete**
+- Delete templates with **5-second undo** (no confirm dialog)
 
 ### Monthly Leave Management
 - Set default leave allocation per employee
@@ -53,9 +59,11 @@ This monitoring approach provides visibility from multiple perspectives.
 - Optionally track specific leave dates
 - Override allocation for specific months
 - View remaining leaves
+- **Calendar view** - Visual month grid showing each employee's leave days highlighted
 
 ### Analytics & Insights
-- Performance trend charts
+- Performance trend charts (admin score, peer score, weighted score over time)
+- **Comparison chart** - Compare two employees side-by-side on the same trend graph
 - Historical rating data
 - Dashboard statistics (total employees, average score, top performer)
 - Employee search and filter
@@ -73,9 +81,9 @@ This monitoring approach provides visibility from multiple perspectives.
 - Password-protected admin access (changeable via UI)
 - **Password hashing** (SHA-256)
 - **Session timeout** (30 minutes of inactivity)
-- **Rate limiting** (5 login attempts, 5-minute lockout)
+- **Rate limiting** (5 login attempts, 5-minute lockout; applies to both login and data unlock)
 - Secure rating sessions
-- Confirmation dialogs for destructive actions
+- **Undo toasts** replace confirm dialogs — instant action with 5-second undo window
 
 ### Desktop App (Windows)
 - Standalone Electron application
@@ -172,7 +180,7 @@ employee-rating-app/
 ## Data Model
 
 ### Employee
-- ID, Name, Photo, Avatar color, Leaves per month, isArchived flag
+- ID, Name, Photo, Avatar color, Leaves per month, isArchived flag, Notes (admin-only)
 
 ### Rating
 - Rater info, Rated employee, Category, Rating value, Feedback, Timestamp

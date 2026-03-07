@@ -47,7 +47,7 @@ Employee management system with a React/TypeScript frontend and Express.js backe
 
 ### Data Model
 All data persisted to `server/data/db.json` (or `%APPDATA%` in Electron):
-- `employees` - Staff members with photo (base64), avatar, `leavesPerMonth` allocation, and `isArchived` flag
+- `employees` - Staff members with photo (base64), avatar, `leavesPerMonth` allocation, `isArchived` flag, and `notes` (admin-only)
 - `ratings` - Performance ratings with weighted scoring (50% attendance, 30% admin, 20% peer)
 - `categories` - Customizable rating categories (default: Teamwork, Communication, Quality of Work, Reliability)
 - `taskTemplates` - Recurring task definitions; `assignedTo: number[]` (array of employee IDs, supports multiple assignees)
@@ -57,6 +57,7 @@ All data persisted to `server/data/db.json` (or `%APPDATA%` in Electron):
 - `taskIncompleteReports` - Tasks reported incomplete by peers during rating
 - `monthlyLeaves` - Monthly leave records with allocated/taken counts and optional dates
 - `adminPassword` - Hashed admin login password (SHA-256, default: `admin123`, changeable via UI)
+- `settings` - `AppSettings`: `{ attendanceExcellentThreshold: number, attendanceGoodThreshold: number }` (default: 90/70)
 
 ### View Routing
 String-based view state in `App.tsx`: `login` → `adminSelection` → module views (`admin`, `employees`, `tasks`, `rules`, `attendance`, `data`) → `employee`/`adminRating` for rating flow.
@@ -64,8 +65,8 @@ String-based view state in `App.tsx`: `login` → `adminSelection` → module vi
 ### Security
 - **Password Hashing**: SHA-256 via Web Crypto API (see `src/utils/password.ts`)
 - **Session Timeout**: 30 minutes of inactivity auto-logout
-- **Rate Limiting**: 5 failed login attempts trigger 5-minute lockout
-- Confirmation dialogs for destructive actions
+- **Rate Limiting**: 5 failed login attempts trigger 5-minute lockout (applies to login screen and data-unlock modal)
+- **Undo toasts** replace confirm() dialogs for destructive actions (5-second undo window)
 
 ## Key Files
 - `src/App.tsx` - Main state container, all handlers, view routing
@@ -74,6 +75,8 @@ String-based view state in `App.tsx`: `login` → `adminSelection` → module vi
 - `src/types/index.ts` - TypeScript interfaces
 - `src/utils/exportData.ts` - Excel export utility
 - `src/utils/password.ts` - Password hashing (SHA-256)
+- `src/utils/printSummary.ts` - Print/PDF summary (generates HTML as Blob URL, opens in new window)
+- `src/components/common/UndoToast.tsx` - Undo toast notification component
 
 ## Important Patterns
 - Data auto-saves on state change (after initial load completes via `isDataLoaded` flag)
@@ -81,24 +84,30 @@ String-based view state in `App.tsx`: `login` → `adminSelection` → module vi
 - **Multi-assignee Tasks**: `TaskTemplate.assignedTo` is `number[]`; backward compatibility normalizes old `number | null` values on load/restore
 - **Peer Monitoring**: Rule violations and incomplete tasks can be reported during both admin and peer rating flows
 - **Score Weightage**: 50% attendance (based on leaves), 30% admin ratings, 20% peer ratings
+- **Attendance Thresholds**: Configurable via `settings.attendanceExcellentThreshold` / `attendanceGoodThreshold`; defaults 90/70. Used in `AdminDashboard.calculateAttendanceScore`
 - Employee rankings in the ratings dashboard are sorted by weighted score (highest first)
 - Monthly leave records are per-employee per-month with optional specific dates
 - **Data Management**: Dedicated module for Export (XLSX), Backup (JSON), and Restore operations
 - **Employee Archive**: Soft delete pattern - archived employees hidden from active views but data preserved
 - **Category Management**: Admin can add, edit (inline rename), and remove rating categories from the Employee Ratings dashboard
+- **Undo Toasts**: `showUndoToast(message, onUndo)` in App.tsx — immediate action, 5-second undo via `UndoToast` component. Used for archive/delete operations (no confirm dialogs)
+- **Rating Round Banner**: `AdminSelectionView` computes `monthsSinceLastRating` from `lastRatingTimestamp` prop; shows amber banner when ≥ 3 months
+- **Peer % on tasks**: `DailyTasksDashboard` shows `reporters / (employees.length - 1)` for incomplete task reports
+- **Leave Calendar**: `LeaveTracker` has `viewMode: 'list' | 'calendar'`; calendar uses computed `calendarDays` array
+- **Comparison Chart**: `TrendsView` has internal `compareWithId` state; adds second orange dashed line for comparison employee
 - Admin password hashed with SHA-256, changeable via "Change Password" in admin dashboard
 - Ratings conducted periodically (every 3-4 months), not daily
 
 ## Component Structure
-- `src/components/admin/` - Admin selection dashboard (module navigation)
-- `src/components/attendance/` - LeaveTracker (monthly leave management)
+- `src/components/admin/` - Admin selection dashboard (module navigation, rating banner, attendance settings modal)
+- `src/components/attendance/` - LeaveTracker (monthly leave management, list + calendar views)
 - `src/components/auth/` - Login view with rate limiting
-- `src/components/common/` - Reusable components (FloatingLabelInput, RatingButton)
-- `src/components/dashboard/` - Employee ratings view with stats, search, and category management
+- `src/components/common/` - Reusable components (FloatingLabelInput, RatingButton, UndoToast)
+- `src/components/dashboard/` - Employee ratings view with stats, search, category management, print button
 - `src/components/data/` - Data Management (export/backup/restore)
-- `src/components/employees/` - Employee management with archive/restore functionality
+- `src/components/employees/` - Employee management with archive/restore, notes field
 - `src/components/history/` - Rating history views
 - `src/components/rating/` - Rating flow with peer monitoring
-- `src/components/rules/` - Rules management and violation summary
-- `src/components/tasks/` - Task templates and daily tasks view
-- `src/components/trends/` - Performance trend charts
+- `src/components/rules/` - Rules management, violation summary, filterable history
+- `src/components/tasks/` - Task templates and daily tasks view (peer % on incomplete tasks)
+- `src/components/trends/` - Performance trend charts with optional comparison employee
