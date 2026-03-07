@@ -450,54 +450,46 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
                             </button>
                         </div>
 
-                        <p className={`${THEME.typography.bodyMedium} text-[#37474F] mb-6`}>
-                            Configure attendance thresholds for scoring. Score 3 (Excellent) requires ≥ Excellent %, Score 2 (Good) requires ≥ Good %.
+                        <p className={`${THEME.typography.bodyMedium} text-[#37474F] mb-5`}>
+                            Set the minimum attendance % needed for each score level.
                         </p>
 
-                        <div className="space-y-5 mb-6">
-                            <div>
-                                <label className={`block ${THEME.typography.labelLarge} text-[#37474F] mb-2`}>
-                                    Excellent Threshold (Score 3): <strong>{editExcellent}%</strong>
-                                </label>
+                        <div className="space-y-4 mb-5">
+                            <div className="flex items-center gap-3">
+                                <span className="w-6 h-6 rounded-full bg-[#2E7D32] flex items-center justify-center text-white text-xs font-bold shrink-0">3</span>
+                                <label className={`${THEME.typography.labelLarge} text-[#37474F] w-36 shrink-0`}>Excellent — at least</label>
                                 <input
-                                    type="range"
-                                    min="50"
+                                    type="number"
+                                    min="1"
                                     max="100"
-                                    step="5"
                                     value={editExcellent}
-                                    onChange={(e) => setEditExcellent(Number(e.target.value))}
-                                    className="w-full accent-[#0277BD]"
+                                    onChange={(e) => { setEditExcellent(Number(e.target.value)); setSettingsError(''); }}
+                                    className={`w-20 px-3 py-2 border border-gray-300 ${THEME.shapes.medium} text-center text-[#263238] font-bold focus:outline-none focus:ring-2 focus:ring-[#0277BD]`}
                                 />
-                                <div className="flex justify-between text-xs text-[#37474F] mt-1">
-                                    <span>50%</span><span>100%</span>
-                                </div>
+                                <span className={`${THEME.typography.bodyMedium} text-[#37474F]`}>% attendance</span>
                             </div>
-                            <div>
-                                <label className={`block ${THEME.typography.labelLarge} text-[#37474F] mb-2`}>
-                                    Good Threshold (Score 2): <strong>{editGood}%</strong>
-                                </label>
+                            <div className="flex items-center gap-3">
+                                <span className="w-6 h-6 rounded-full bg-[#F57C00] flex items-center justify-center text-white text-xs font-bold shrink-0">2</span>
+                                <label className={`${THEME.typography.labelLarge} text-[#37474F] w-36 shrink-0`}>Good — at least</label>
                                 <input
-                                    type="range"
-                                    min="0"
-                                    max="95"
-                                    step="5"
+                                    type="number"
+                                    min="1"
+                                    max="100"
                                     value={editGood}
-                                    onChange={(e) => setEditGood(Number(e.target.value))}
-                                    className="w-full accent-[#00897B]"
+                                    onChange={(e) => { setEditGood(Number(e.target.value)); setSettingsError(''); }}
+                                    className={`w-20 px-3 py-2 border border-gray-300 ${THEME.shapes.medium} text-center text-[#263238] font-bold focus:outline-none focus:ring-2 focus:ring-[#00897B]`}
                                 />
-                                <div className="flex justify-between text-xs text-[#37474F] mt-1">
-                                    <span>0%</span><span>95%</span>
-                                </div>
+                                <span className={`${THEME.typography.bodyMedium} text-[#37474F]`}>% attendance</span>
                             </div>
-
-                            <div className={`bg-[#F1F8FB] ${THEME.shapes.medium} p-3 text-sm text-[#37474F]`}>
-                                <p>• ≥ {editExcellent}% attendance → Score 3 (Excellent)</p>
-                                <p>• ≥ {editGood}% attendance → Score 2 (Good)</p>
-                                <p>• &lt; {editGood}% attendance → Score 1 (Needs Improvement)</p>
+                            <div className="flex items-center gap-3">
+                                <span className="w-6 h-6 rounded-full bg-[#D32F2F] flex items-center justify-center text-white text-xs font-bold shrink-0">1</span>
+                                <span className={`${THEME.typography.labelLarge} text-[#37474F] w-36 shrink-0`}>Needs Improvement</span>
+                                <span className={`${THEME.typography.bodyMedium} text-[#546E7A] italic`}>below {editGood}%</span>
                             </div>
-
-                            {settingsError && <p className="text-red-500 text-sm">{settingsError}</p>}
                         </div>
+
+                        {settingsError && <p className="text-red-500 text-sm mb-4">{settingsError}</p>}
+
 
                         <div className="flex gap-3">
                             <button
