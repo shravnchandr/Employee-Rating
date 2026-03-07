@@ -36,6 +36,7 @@ function isValidChannel(channel) {
 contextBridge.exposeInMainWorld('electronAPI', {
     // Data operations
     fetchData: () => ipcRenderer.invoke('data:fetch'),
+    savePDF: (html, filename) => ipcRenderer.invoke('pdf:save', { html, filename }),
     saveData: (data) => {
         // Basic validation before sending
         if (data === null || typeof data !== 'object') {

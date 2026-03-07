@@ -1,10 +1,10 @@
 import React from 'react';
-import { Shield, Users, Award, TrendingUp, History, X, Lock, Unlock, Eye, EyeOff, ArrowLeft, Calendar, Search, BarChart3, Star, UserCheck, Settings, Plus, Trash2, Pencil, Check, Printer } from 'lucide-react';
+import { Shield, Users, Award, TrendingUp, History, X, Lock, Unlock, Eye, EyeOff, ArrowLeft, Calendar, Search, BarChart3, Star, UserCheck, Settings, Plus, Trash2, Pencil, Check, Printer, FileDown } from 'lucide-react';
 import { THEME } from '../../theme';
 import { TrendsView } from '../trends/TrendsView';
 import { GivenRatingsView } from '../history/GivenRatingsView';
 import type { Employee, Rating, MonthlyLeaveRecord, AppSettings } from '../../types';
-import { printEmployeeSummary } from '../../utils/printSummary';
+import { printEmployeeSummary, saveEmployeeSummaryAsPDF } from '../../utils/printSummary';
 
 interface AdminDashboardProps {
     employees: Employee[];
@@ -526,10 +526,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 </button>
                                                 <button
                                                     onClick={() => printEmployeeSummary(emp, scores, ratings, monthlyLeaves, settings)}
-                                                    className={`bg-[#E8F5E9] hover:bg-[#C8E6C9] ${THEME.shapes.full} px-4 py-2.5 text-sm font-medium hover:shadow-md transition-all text-[#2E7D32] flex items-center gap-2`}
+                                                    className={`bg-[#E8F5E9] hover:bg-[#C8E6C9] ${THEME.shapes.full} px-3 py-2.5 text-sm font-medium hover:shadow-md transition-all text-[#2E7D32] flex items-center gap-2`}
                                                     title="Print Summary"
                                                 >
                                                     <Printer className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => saveEmployeeSummaryAsPDF(emp, scores, ratings, monthlyLeaves, settings)}
+                                                    className={`bg-[#E3F2FD] hover:bg-[#BBDEFB] ${THEME.shapes.full} px-3 py-2.5 text-sm font-medium hover:shadow-md transition-all text-[#0277BD] flex items-center gap-2`}
+                                                    title="Save as PDF"
+                                                >
+                                                    <FileDown className="w-4 h-4" />
                                                 </button>
                                             </>
                                         )}

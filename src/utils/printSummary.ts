@@ -18,13 +18,13 @@ export interface PrintScoreData {
     hasAttendance: boolean;
 }
 
-export function printEmployeeSummary(
+function buildSummaryDoc(
     employee: Employee,
     scores: PrintScoreData,
     ratings: Rating[],
     monthlyLeaves: MonthlyLeaveRecord[],
     _settings: AppSettings
-) {
+): string {
     const employeeRatings = ratings.filter(r => r.ratedEmployeeId === employee.id);
     const adminRatings = employeeRatings.filter(r => r.isAdminRating);
     const peerRatings = employeeRatings.filter(r => !r.isAdminRating);
@@ -126,17 +126,46 @@ export function printEmployeeSummary(
         '</body></html>'
     ].join('');
 
-    // Use a hidden iframe with srcdoc — works in both Electron (no popup allowed) and browsers
+    return doc;
+}
+
+function printViaIframe(doc: string) {
     const frame = document.createElement('iframe');
     frame.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;border:none;';
     frame.setAttribute('srcdoc', doc);
     document.body.appendChild(frame);
-
     frame.addEventListener('load', () => {
         frame.contentWindow?.print();
-        // Remove after a short delay to allow the print dialog to open
         setTimeout(() => {
             if (document.body.contains(frame)) document.body.removeChild(frame);
         }, 1000);
     });
+}
+
+export function printEmployeeSummary(
+    employee: Employee,
+    scores: PrintScoreData,
+    ratings: Rating[],
+    monthlyLeaves: MonthlyLeaveRecord[],
+    settings: AppSettings
+) {
+    printViaIframe(buildSummaryDoc(employee, scores, ratings, monthlyLeaves, settings));
+}
+
+export async function saveEmployeeSummaryAsPDF(
+    employee: Employee,
+    scores: PrintScoreData,
+    ratings: Rating[],
+    monthlyLeaves: MonthlyLeaveRecord[],
+    settings: AppSettings
+) {
+    const doc = buildSummaryDoc(employee, scores, ratings, monthlyLeaves, settings);
+    const filename = employee.name.replace(/[^a-z0-9]/gi, '_') + '_Performance_Summary';
+
+    if (window.electronAPI?.savePDF) {
+        await window.electronAPI.savePDF(doc, filename);
+    } else {
+        // Browser fallback: print dialog lets user choose "Save as PDF"
+        printViaIframe(doc);
+    }
 }

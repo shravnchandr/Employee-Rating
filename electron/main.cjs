@@ -1,5 +1,7 @@
-const { app, BrowserWindow, ipcMain, session, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, session, shell, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
 const { autoUpdater } = require('electron-updater');
 const { readData, writeData, ensureDataFile } = require('./dataManager.cjs');
 
@@ -148,6 +150,42 @@ ipcMain.handle('data:save', async (event, data) => {
         return { success: false, message: 'Invalid data structure' };
     }
     return writeData(data);
+});
+
+// IPC Handler for PDF export
+ipcMain.handle('pdf:save', async (event, { html, filename }) => {
+    const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
+        title: 'Save Performance Summary as PDF',
+        defaultPath: path.join(app.getPath('documents'), filename + '.pdf'),
+        filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
+    });
+
+    if (canceled || !filePath) return { success: false };
+
+    // Write HTML to a temp file so the hidden window can load it as file://
+    const tempPath = path.join(os.tmpdir(), `emp-report-${Date.now()}.html`);
+    fs.writeFileSync(tempPath, html, 'utf8');
+
+    const pdfWindow = new BrowserWindow({
+        show: false,
+        webPreferences: {
+            contextIsolation: true,
+            nodeIntegration: false,
+            sandbox: false
+        }
+    });
+
+    await pdfWindow.loadFile(tempPath);
+    const pdfData = await pdfWindow.webContents.printToPDF({
+        printBackground: true,
+        pageSize: 'A4'
+    });
+    pdfWindow.close();
+
+    try { fs.unlinkSync(tempPath); } catch (_) {}
+
+    fs.writeFileSync(filePath, pdfData);
+    return { success: true, filePath };
 });
 
 // IPC Handlers for update operations

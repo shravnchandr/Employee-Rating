@@ -17,6 +17,7 @@ interface DownloadProgress {
 interface ElectronAPI {
     fetchData: () => Promise<any>;
     saveData: (data: any) => Promise<{ success: boolean; message: string }>;
+    savePDF: (html: string, filename: string) => Promise<{ success: boolean; filePath?: string }>;
     checkForUpdates: () => Promise<any>;
     downloadUpdate: () => Promise<boolean>;
     installUpdate: () => void;
