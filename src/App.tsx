@@ -52,6 +52,11 @@ const EmployeeRatingApp = () => {
   // Security states
   const [loginAttempts, setLoginAttempts] = useState(0);
   const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [sessionMessage, setSessionMessage] = useState<string | null>(null);
+  const [ratingError, setRatingError] = useState<string | null>(null);
+  // Track current date so auto-populate re-runs when the date changes (e.g. app left open overnight)
+  const [currentDate, setCurrentDate] = useState(() => new Date().toISOString().split('T')[0]);
   const lastActivityRef = useRef<number>(Date.now());
   const sessionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
@@ -66,6 +71,15 @@ const EmployeeRatingApp = () => {
 
   useEffect(() => {
     loadData();
+  }, []);
+
+  // Update currentDate every minute so auto-populate fires when the calendar date rolls over
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const today = new Date().toISOString().split('T')[0];
+      setCurrentDate(prev => (prev !== today ? today : prev));
+    }, 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
 
   const loadData = async () => {
@@ -123,11 +137,11 @@ const EmployeeRatingApp = () => {
     }
   }, [employees, ratings, categories, taskTemplates, dailyTasks, rules, violations, monthlyLeaves, taskIncompleteReports, storedAdminPassword, isDataLoaded]);
 
-  // Auto-populate daily tasks from active templates
+  // Auto-populate daily tasks from active templates (also re-runs when the date changes)
   useEffect(() => {
     if (!isDataLoaded) return;
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = currentDate;
     const todaysTasks = dailyTasks.filter(t => t.date === today);
 
     // Get active templates that don't have tasks created for today
@@ -158,7 +172,7 @@ const EmployeeRatingApp = () => {
     if (newTasks.length > 0) {
       setDailyTasks(prev => [...prev, ...newTasks]);
     }
-  }, [taskTemplates, isDataLoaded]);
+  }, [taskTemplates, isDataLoaded, currentDate]);
 
   // Session timeout management
   const resetSessionTimeout = useCallback(() => {
@@ -169,7 +183,7 @@ const EmployeeRatingApp = () => {
     if (view !== 'login') {
       sessionTimeoutRef.current = setTimeout(() => {
         setView('login');
-        alert('Session expired due to inactivity. Please log in again.');
+        setSessionMessage('Session expired due to inactivity. Please log in again.');
       }, SESSION_TIMEOUT_MS);
     }
   }, [view]);
@@ -191,12 +205,11 @@ const EmployeeRatingApp = () => {
   const handleAdminLogin = async () => {
     // Check for lockout
     if (lockoutUntil && Date.now() < lockoutUntil) {
-      const remainingSeconds = Math.ceil((lockoutUntil - Date.now()) / 1000);
-      alert(`Too many failed attempts. Please wait ${remainingSeconds} seconds.`);
       return;
     }
 
     setIsLoading(true);
+    setLoginError(null);
     try {
       const isValid = await verifyPassword(adminPassword, storedAdminPassword);
       if (isValid) {
@@ -204,15 +217,18 @@ const EmployeeRatingApp = () => {
         setAdminPassword('');
         setLoginAttempts(0);
         setLockoutUntil(null);
+        setLoginError(null);
+        setSessionMessage(null);
         resetSessionTimeout();
       } else {
         const newAttempts = loginAttempts + 1;
         setLoginAttempts(newAttempts);
+        setAdminPassword('');
         if (newAttempts >= MAX_LOGIN_ATTEMPTS) {
           setLockoutUntil(Date.now() + LOCKOUT_DURATION_MS);
-          alert(`Too many failed attempts. Locked out for 5 minutes.`);
+          setLoginError('Too many failed attempts. Locked out for 5 minutes.');
         } else {
-          alert(`Incorrect password. ${MAX_LOGIN_ATTEMPTS - newAttempts} attempts remaining.`);
+          setLoginError(`Incorrect password. ${MAX_LOGIN_ATTEMPTS - newAttempts} attempt${MAX_LOGIN_ATTEMPTS - newAttempts !== 1 ? 's' : ''} remaining.`);
         }
       }
     } finally {
@@ -351,7 +367,7 @@ const EmployeeRatingApp = () => {
       taskIncompleteReports,
       adminPassword: storedAdminPassword,
       backupDate: new Date().toISOString(),
-      version: '1.2'
+      version: '1.4'
     };
 
     const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
@@ -401,6 +417,7 @@ const EmployeeRatingApp = () => {
     setCurrentFeedbacks({});
     setCurrentViolations({});
     setCurrentIncompleteTasks({});
+    setRatingError(null);
   };
 
   const startAdminRating = () => {
@@ -411,6 +428,7 @@ const EmployeeRatingApp = () => {
     setCurrentFeedbacks({});
     setCurrentViolations({});
     setCurrentIncompleteTasks({});
+    setRatingError(null);
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -514,10 +532,11 @@ const EmployeeRatingApp = () => {
     const hasAllRatings = categories.every(cat => currentRatings[employeeToRate.id]?.[cat]);
 
     if (!hasAllRatings) {
-      alert('Please rate all categories before proceeding');
+      setRatingError('Please rate all categories before proceeding.');
       return;
     }
 
+    setRatingError(null);
     setAnimating(true);
     setTimeout(() => {
       setAnimating(false);
@@ -620,7 +639,8 @@ const EmployeeRatingApp = () => {
         handleAdminLogin={handleAdminLogin}
         isLoading={isLoading}
         lockoutUntil={lockoutUntil}
-        attemptsRemaining={MAX_LOGIN_ATTEMPTS - loginAttempts}
+        loginError={loginError}
+        sessionMessage={sessionMessage}
       />
     );
   }
@@ -775,6 +795,7 @@ const EmployeeRatingApp = () => {
         currentIncompleteTasks={currentIncompleteTasks}
         onToggleViolation={toggleViolation}
         onToggleIncompleteTask={toggleIncompleteTask}
+        ratingError={ratingError}
       />
     );
   }

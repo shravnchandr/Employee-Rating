@@ -11,7 +11,7 @@ const app = express();
 const PORT = 3001;
 const DB_FILE = path.join(__dirname, 'data', 'db.json');
 
-app.use(cors());
+app.use(cors({ origin: ['http://localhost:5173', 'http://127.0.0.1:5173'] }));
 app.use(express.json({ limit: '50mb' }));
 
 // Ensure data directory exists

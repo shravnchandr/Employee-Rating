@@ -33,6 +33,7 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [passwordError, setPasswordError] = useState('');
+    const [passwordSuccess, setPasswordSuccess] = useState(false);
 
     // Update state
     const [updateStatus, setUpdateStatus] = useState<UpdateStatus>('idle');
@@ -113,7 +114,8 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
         setShowPasswordModal(false);
         setNewPassword('');
         setConfirmPassword('');
-        alert('Password changed successfully!');
+        setPasswordSuccess(true);
+        setTimeout(() => setPasswordSuccess(false), 3000);
     };
 
     const closePasswordModal = () => {
@@ -123,6 +125,7 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
         setPasswordError('');
         setShowNewPassword(false);
         setShowConfirmPassword(false);
+        setPasswordSuccess(false);
     };
 
     const renderUpdateBanner = () => {
@@ -331,6 +334,13 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
                         </p>
                     </button>
                 </div>
+
+                {/* Password change success message */}
+                {passwordSuccess && (
+                    <p className={`${THEME.typography.bodyMedium} text-[#00897B] text-center mb-4`}>
+                        Password changed successfully.
+                    </p>
+                )}
 
                 {/* Bottom Buttons */}
                 <div className="text-center flex justify-center gap-4 flex-wrap">

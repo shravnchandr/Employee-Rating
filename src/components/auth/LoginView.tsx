@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Eye, EyeOff, ChevronRight, Loader2 } from 'lucide-react';
 import { THEME } from '../../theme';
 
@@ -8,7 +8,8 @@ interface LoginViewProps {
     handleAdminLogin: () => void;
     isLoading?: boolean;
     lockoutUntil?: number | null;
-    attemptsRemaining?: number;
+    loginError?: string | null;
+    sessionMessage?: string | null;
 }
 
 export const LoginView: React.FC<LoginViewProps> = ({
@@ -17,10 +18,12 @@ export const LoginView: React.FC<LoginViewProps> = ({
     handleAdminLogin,
     isLoading = false,
     lockoutUntil = null,
-    attemptsRemaining = 5
+    loginError = null,
+    sessionMessage = null
 }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [lockoutSeconds, setLockoutSeconds] = useState(0);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     // Update lockout countdown
     useEffect(() => {
@@ -38,6 +41,13 @@ export const LoginView: React.FC<LoginViewProps> = ({
     }, [lockoutUntil]);
 
     const isLockedOut = lockoutSeconds > 0;
+
+    // Auto-focus input when an error occurs so user can retype immediately
+    useEffect(() => {
+        if (loginError && !isLockedOut) {
+            inputRef.current?.focus();
+        }
+    }, [loginError, isLockedOut]);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#E3F2FD] via-[#F1F8FB] to-[#B3E5FC] flex items-center justify-center p-6 relative overflow-hidden">
@@ -61,10 +71,11 @@ export const LoginView: React.FC<LoginViewProps> = ({
                     <div className="space-y-8">
                         <div className="relative">
                             <input
+                                ref={inputRef}
                                 type={showPassword ? "text" : "password"}
                                 value={adminPassword}
                                 onChange={(e) => setAdminPassword(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && handleAdminLogin()}
+                                onKeyPress={(e) => e.key === 'Enter' && !isLoading && !isLockedOut && handleAdminLogin()}
                                 placeholder=" "
                                 className={`peer w-full h-[64px] px-5 pt-6 pb-2 bg-[#CFE9F3] ${THEME.shapes.medium} border-2 border-transparent focus:border-[#0277BD] focus:bg-[#B3E5FC]/20 outline-none text-[#263238] text-lg placeholder-transparent ${THEME.animation.spring}`}
                             />
@@ -103,10 +114,16 @@ export const LoginView: React.FC<LoginViewProps> = ({
                             )}
                         </button>
 
-                        {/* Attempts remaining warning */}
-                        {attemptsRemaining < 5 && attemptsRemaining > 0 && !isLockedOut && (
+                        {/* Session expiry message */}
+                        {sessionMessage && !loginError && (
+                            <p className={`${THEME.typography.bodyMedium} text-[#E65100] text-center`}>
+                                {sessionMessage}
+                            </p>
+                        )}
+                        {/* Inline error message */}
+                        {loginError && (
                             <p className={`${THEME.typography.bodyMedium} text-[#D32F2F] text-center`}>
-                                {attemptsRemaining} attempt{attemptsRemaining !== 1 ? 's' : ''} remaining
+                                {loginError}
                             </p>
                         )}
                     </div>

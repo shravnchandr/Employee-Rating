@@ -51,9 +51,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [pendingAction, setPendingAction] = React.useState<'rate' | null>(null);
     const [searchQuery, setSearchQuery] = React.useState('');
 
+    // Unlock rate limiting
+    const [unlockAttempts, setUnlockAttempts] = React.useState(0);
+    const [unlockLockedUntil, setUnlockLockedUntil] = React.useState<number | null>(null);
+    const [unlockLockoutSeconds, setUnlockLockoutSeconds] = React.useState(0);
+
+    React.useEffect(() => {
+        if (unlockLockedUntil && unlockLockedUntil > Date.now()) {
+            const update = () => {
+                const remaining = Math.ceil((unlockLockedUntil - Date.now()) / 1000);
+                setUnlockLockoutSeconds(Math.max(0, remaining));
+            };
+            update();
+            const interval = setInterval(update, 1000);
+            return () => clearInterval(interval);
+        } else {
+            setUnlockLockoutSeconds(0);
+        }
+    }, [unlockLockedUntil]);
+
     // Category management state
     const [showCategoryModal, setShowCategoryModal] = React.useState(false);
     const [newCategory, setNewCategory] = React.useState('');
+    const [categoryError, setcategoryError] = React.useState('');
     const [editingCategory, setEditingCategory] = React.useState<string | null>(null);
     const [editCategoryValue, setEditCategoryValue] = React.useState('');
 
@@ -63,8 +83,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             if (!categories.includes(trimmed)) {
                 onAddCategory(trimmed);
                 setNewCategory('');
+                setcategoryError('');
             } else {
-                alert('This category already exists');
+                setcategoryError('This category already exists.');
             }
         }
     };
@@ -79,16 +100,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         const trimmed = editCategoryValue.trim();
         if (trimmed && trimmed !== oldName) {
             if (categories.includes(trimmed)) {
-                alert('This category already exists');
+                setcategoryError('This category already exists.');
                 return;
             }
             onEditCategory(oldName, trimmed);
         }
         setEditingCategory(null);
         setEditCategoryValue('');
+        setcategoryError('');
     };
 
+    const MAX_UNLOCK_ATTEMPTS = 5;
+    const UNLOCK_LOCKOUT_MS = 5 * 60 * 1000;
+
     const handleUnlock = async () => {
+        // Check lockout
+        if (unlockLockedUntil && Date.now() < unlockLockedUntil) return;
+
         setIsVerifying(true);
         try {
             const isValid = await verifyPassword(unlockPassword);
@@ -97,13 +125,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 setShowUnlockModal(false);
                 setUnlockPassword('');
                 setPasswordError('');
+                setUnlockAttempts(0);
+                setUnlockLockedUntil(null);
 
                 if (pendingAction === 'rate') {
                     startAdminRating();
                     setPendingAction(null);
                 }
             } else {
-                setPasswordError('Incorrect password');
+                const newAttempts = unlockAttempts + 1;
+                setUnlockAttempts(newAttempts);
+                setUnlockPassword('');
+                if (newAttempts >= MAX_UNLOCK_ATTEMPTS) {
+                    setUnlockLockedUntil(Date.now() + UNLOCK_LOCKOUT_MS);
+                    setPasswordError('Too many failed attempts. Locked out for 5 minutes.');
+                } else {
+                    setPasswordError(`Incorrect password. ${MAX_UNLOCK_ATTEMPTS - newAttempts} attempt${MAX_UNLOCK_ATTEMPTS - newAttempts !== 1 ? 's' : ''} remaining.`);
+                }
             }
         } finally {
             setIsVerifying(false);
@@ -520,7 +558,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <div className="flex items-center justify-between mb-4">
                             <h3 className={`${THEME.typography.headlineSmall} text-[#263238]`}>Unlock Data</h3>
                             <button
-                                onClick={() => { setShowUnlockModal(false); setUnlockPassword(''); setPasswordError(''); }}
+                                onClick={() => { setShowUnlockModal(false); setUnlockPassword(''); setPasswordError(''); setPendingAction(null); }}
                                 className="p-2 hover:bg-[#CFE9F3] rounded-full transition-colors"
                             >
                                 <X className="w-6 h-6 text-[#37474F]" />
@@ -536,9 +574,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 type={showPasswordInput ? "text" : "password"}
                                 value={unlockPassword}
                                 onChange={(e) => { setUnlockPassword(e.target.value); setPasswordError(''); }}
-                                onKeyPress={(e) => e.key === 'Enter' && handleUnlock()}
+                                onKeyPress={(e) => e.key === 'Enter' && !isVerifying && !unlockLockoutSeconds && handleUnlock()}
                                 placeholder="Admin Password"
-                                className={`w-full h-[56px] px-4 bg-[#CFE9F3] rounded-t-[4px] border-b ${passwordError ? 'border-[#D32F2F]' : 'border-[#37474F]'} focus:border-b-2 ${passwordError ? 'focus:border-[#D32F2F]' : 'focus:border-[#0277BD]'} outline-none text-[#263238] text-base placeholder-[#37474F]`}
+                                disabled={!!unlockLockoutSeconds}
+                                className={`w-full h-[56px] px-4 bg-[#CFE9F3] rounded-t-[4px] border-b ${passwordError ? 'border-[#D32F2F]' : 'border-[#37474F]'} focus:border-b-2 ${passwordError ? 'focus:border-[#D32F2F]' : 'focus:border-[#0277BD]'} outline-none text-[#263238] text-base placeholder-[#37474F] disabled:opacity-50`}
                                 autoFocus
                             />
                             <button
@@ -563,10 +602,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </button>
                             <button
                                 onClick={handleUnlock}
-                                disabled={isVerifying}
+                                disabled={isVerifying || !!unlockLockoutSeconds}
                                 className={`${THEME.colors.primary} px-6 py-2.5 rounded-full font-medium shadow-sm hover:shadow-md transition-all disabled:opacity-50`}
                             >
-                                {isVerifying ? 'Verifying...' : 'Unlock'}
+                                {isVerifying ? 'Verifying...' : unlockLockoutSeconds ? `Locked (${unlockLockoutSeconds}s)` : 'Unlock'}
                             </button>
                         </div>
                     </div>
@@ -580,7 +619,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <div className="flex items-center justify-between mb-6">
                             <h2 className={`${THEME.typography.headlineSmall} text-[#263238]`}>Rating Categories</h2>
                             <button
-                                onClick={() => { setShowCategoryModal(false); setNewCategory(''); setEditingCategory(null); setEditCategoryValue(''); }}
+                                onClick={() => { setShowCategoryModal(false); setNewCategory(''); setEditingCategory(null); setEditCategoryValue(''); setcategoryError(''); }}
                                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                             >
                                 <X className="w-5 h-5 text-[#37474F]" />
@@ -592,14 +631,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </p>
 
                         {/* Add New Category */}
-                        <div className="flex gap-2 mb-6">
+                        <div className="flex gap-2 mb-2">
                             <input
                                 type="text"
                                 value={newCategory}
-                                onChange={(e) => setNewCategory(e.target.value)}
+                                onChange={(e) => { setNewCategory(e.target.value); setcategoryError(''); }}
                                 onKeyPress={(e) => e.key === 'Enter' && handleAddCategory()}
                                 placeholder="Enter new category name"
-                                className={`flex-1 px-4 py-3 border border-gray-300 ${THEME.shapes.medium} focus:outline-none focus:ring-2 focus:ring-[#7B1FA2] focus:border-transparent`}
+                                className={`flex-1 px-4 py-3 border ${categoryError ? 'border-[#D32F2F]' : 'border-gray-300'} ${THEME.shapes.medium} focus:outline-none focus:ring-2 focus:ring-[#7B1FA2] focus:border-transparent`}
                             />
                             <button
                                 onClick={handleAddCategory}
@@ -609,6 +648,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <Plus className="w-5 h-5" />
                             </button>
                         </div>
+                        {categoryError && (
+                            <p className={`${THEME.typography.bodyMedium} text-[#D32F2F] text-sm mb-4`}>{categoryError}</p>
+                        )}
 
                         {/* Current Categories */}
                         <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -672,7 +714,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                         <div className="mt-6">
                             <button
-                                onClick={() => { setShowCategoryModal(false); setNewCategory(''); setEditingCategory(null); setEditCategoryValue(''); }}
+                                onClick={() => { setShowCategoryModal(false); setNewCategory(''); setEditingCategory(null); setEditCategoryValue(''); setcategoryError(''); }}
                                 className={`w-full px-4 py-3 bg-[#7B1FA2] text-white hover:bg-[#6A1B9A] ${THEME.shapes.medium} ${THEME.animation.spring}`}
                             >
                                 Done

@@ -22,6 +22,7 @@ interface RatingViewProps {
     currentIncompleteTasks: Record<number, number[]>;
     onToggleViolation: (employeeId: number, ruleId: number) => void;
     onToggleIncompleteTask: (employeeId: number, taskId: number) => void;
+    ratingError?: string | null;
 }
 
 export const RatingView: React.FC<RatingViewProps> = ({
@@ -41,7 +42,8 @@ export const RatingView: React.FC<RatingViewProps> = ({
     currentViolations,
     currentIncompleteTasks,
     onToggleViolation,
-    onToggleIncompleteTask
+    onToggleIncompleteTask,
+    ratingError = null
 }) => {
 
     const employeeToRate = employeesToRate[currentRatingIndex];
@@ -254,6 +256,11 @@ export const RatingView: React.FC<RatingViewProps> = ({
 
                 {/* Footer */}
                 <div className="pt-6 border-t border-[#CFE9F3] w-full">
+                    {ratingError && (
+                        <p className={`${THEME.typography.bodyMedium} text-[#D32F2F] text-center mb-3`}>
+                            {ratingError}
+                        </p>
+                    )}
                     <button
                         onClick={goToNextEmployee}
                         className={`w-full ${THEME.colors.primary} ${THEME.shapes.full} py-4 text-lg font-medium shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center justify-center gap-3`}
