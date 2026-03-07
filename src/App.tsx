@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import type { Employee, Rating, TaskTemplate, DailyTask, Rule, RuleViolation, MonthlyLeaveRecord, TaskIncompleteReport } from './types';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import type { Employee, Rating, TaskTemplate, DailyTask, Rule, RuleViolation, MonthlyLeaveRecord, TaskIncompleteReport, AppSettings } from './types';
 import { LoginView } from './components/auth/LoginView';
 import { AdminSelectionView } from './components/admin/AdminSelectionView';
 import { AdminDashboard } from './components/dashboard/AdminDashboard';
@@ -9,6 +9,7 @@ import { RulesCompliance } from './components/rules/RulesCompliance';
 import { LeaveTracker } from './components/attendance/LeaveTracker';
 import { RatingView } from './components/rating/RatingView';
 import { DataManagement } from './components/data/DataManagement';
+import { UndoToast } from './components/common/UndoToast';
 import { api } from './services/api';
 import { exportToExcel } from './utils/exportData';
 import { hashPassword, verifyPassword } from './utils/password';
@@ -30,6 +31,11 @@ const EmployeeRatingApp = () => {
   const [monthlyLeaves, setMonthlyLeaves] = useState<MonthlyLeaveRecord[]>([]);
   const [taskIncompleteReports, setTaskIncompleteReports] = useState<TaskIncompleteReport[]>([]);
   const [storedAdminPassword, setStoredAdminPassword] = useState<string>('admin123');
+  const [settings, setSettings] = useState<AppSettings>({ attendanceExcellentThreshold: 90, attendanceGoodThreshold: 70 });
+
+  // Undo toast state
+  const [undoAction, setUndoAction] = useState<{ message: string; onUndo: () => void } | null>(null);
+  const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Admin states
   const [newEmployeeName, setNewEmployeeName] = useState('');
@@ -104,6 +110,7 @@ const EmployeeRatingApp = () => {
       if (data.monthlyLeaves) setMonthlyLeaves(data.monthlyLeaves);
       if (data.taskIncompleteReports) setTaskIncompleteReports(data.taskIncompleteReports);
       if (data.adminPassword) setStoredAdminPassword(data.adminPassword);
+      if (data.settings) setSettings(data.settings);
     } catch (error) {
       console.log('Error loading data:', error);
     } finally {
@@ -123,7 +130,8 @@ const EmployeeRatingApp = () => {
         violations,
         monthlyLeaves,
         taskIncompleteReports,
-        adminPassword: storedAdminPassword
+        adminPassword: storedAdminPassword,
+        settings
       });
     } catch (error) {
       console.error('Error saving data:', error);
@@ -135,7 +143,7 @@ const EmployeeRatingApp = () => {
     if (isDataLoaded) {
       saveData();
     }
-  }, [employees, ratings, categories, taskTemplates, dailyTasks, rules, violations, monthlyLeaves, taskIncompleteReports, storedAdminPassword, isDataLoaded]);
+  }, [employees, ratings, categories, taskTemplates, dailyTasks, rules, violations, monthlyLeaves, taskIncompleteReports, storedAdminPassword, settings, isDataLoaded]);
 
   // Auto-populate daily tasks from active templates (also re-runs when the date changes)
   useEffect(() => {
@@ -251,6 +259,25 @@ const EmployeeRatingApp = () => {
     return verifyPassword(password, storedAdminPassword);
   }, [storedAdminPassword]);
 
+  const handleUpdateSettings = (newSettings: AppSettings) => {
+    setSettings(newSettings);
+  };
+
+  const showUndoToast = (message: string, onUndo: () => void) => {
+    if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
+    setUndoAction({ message, onUndo });
+    undoTimeoutRef.current = setTimeout(() => setUndoAction(null), 5000);
+  };
+
+  // lastRatingTimestamp for rating round banner
+  const lastRatingTimestamp = useMemo(() => {
+    if (ratings.length === 0) return null;
+    return ratings.reduce((latest, r) => {
+      const t = r.timestamp ? new Date(r.timestamp).getTime() : 0;
+      return t > latest ? t : latest;
+    }, 0);
+  }, [ratings]);
+
   // Task template handlers
   const addTaskTemplate = (template: Omit<TaskTemplate, 'id'>) => {
     const newTemplate: TaskTemplate = {
@@ -261,9 +288,12 @@ const EmployeeRatingApp = () => {
   };
 
   const deleteTaskTemplate = (id: number) => {
-    if (confirm('Are you sure you want to delete this template?')) {
-      setTaskTemplates(prev => prev.filter(t => t.id !== id));
-    }
+    const template = taskTemplates.find(t => t.id === id);
+    if (!template) return;
+    setTaskTemplates(prev => prev.filter(t => t.id !== id));
+    showUndoToast(`Template "${template.name}" deleted`, () => {
+      setTaskTemplates(prev => [...prev, template]);
+    });
   };
 
   const toggleTemplateActive = (id: number) => {
@@ -303,9 +333,12 @@ const EmployeeRatingApp = () => {
   };
 
   const deleteRule = (id: number) => {
-    if (confirm('Are you sure you want to delete this rule?')) {
-      setRules(prev => prev.filter(r => r.id !== id));
-    }
+    const rule = rules.find(r => r.id === id);
+    if (!rule) return;
+    setRules(prev => prev.filter(r => r.id !== id));
+    showUndoToast(`Rule "${rule.name}" deleted`, () => {
+      setRules(prev => [...prev, rule]);
+    });
   };
 
   // Monthly leave handlers
@@ -466,16 +499,19 @@ const EmployeeRatingApp = () => {
   };
 
   const removeEmployee = (id: number) => {
-    if (confirm('Are you sure you want to archive this employee? Their data will be preserved but they will be hidden from active views.')) {
-      setEmployees(employees.map(e => e.id === id ? { ...e, isArchived: true } : e));
-    }
+    const emp = employees.find(e => e.id === id);
+    if (!emp) return;
+    setEmployees(prev => prev.map(e => e.id === id ? { ...e, isArchived: true } : e));
+    showUndoToast(`"${emp.name}" archived`, () => {
+      setEmployees(prev => prev.map(e => e.id === id ? { ...e, isArchived: false } : e));
+    });
   };
 
   const restoreEmployee = (id: number) => {
     setEmployees(employees.map(e => e.id === id ? { ...e, isArchived: false } : e));
   };
 
-  const updateEmployee = (id: number, updates: { name?: string; photo?: string | null }) => {
+  const updateEmployee = (id: number, updates: { name?: string; photo?: string | null; notes?: string }) => {
     setEmployees(employees.map(emp => {
       if (emp.id === id) {
         const updatedEmp = { ...emp, ...updates };
@@ -656,6 +692,9 @@ const EmployeeRatingApp = () => {
         onSelectData={() => setView('data')}
         onLogout={() => setView('login')}
         onChangePassword={handleChangePassword}
+        lastRatingTimestamp={lastRatingTimestamp}
+        settings={settings}
+        onUpdateSettings={handleUpdateSettings}
       />
     );
   }
@@ -687,22 +726,31 @@ const EmployeeRatingApp = () => {
 
   if (view === 'employees') {
     return (
-      <EmployeeManagement
-        employees={activeEmployees}
-        archivedEmployees={archivedEmployees}
-        newEmployeeName={newEmployeeName}
-        setNewEmployeeName={setNewEmployeeName}
-        newEmployeePhoto={newEmployeePhoto}
-        handlePhotoUpload={handlePhotoUpload}
-        newEmployeeLeavesPerMonth={newEmployeeLeavesPerMonth}
-        setNewEmployeeLeavesPerMonth={setNewEmployeeLeavesPerMonth}
-        addEmployee={addEmployee}
-        removeEmployee={removeEmployee}
-        restoreEmployee={restoreEmployee}
-        updateEmployee={updateEmployee}
-        updateEmployeeLeavesPerMonth={updateEmployeeLeavesPerMonth}
-        onBack={() => setView('adminSelection')}
-      />
+      <>
+        <EmployeeManagement
+          employees={activeEmployees}
+          archivedEmployees={archivedEmployees}
+          newEmployeeName={newEmployeeName}
+          setNewEmployeeName={setNewEmployeeName}
+          newEmployeePhoto={newEmployeePhoto}
+          handlePhotoUpload={handlePhotoUpload}
+          newEmployeeLeavesPerMonth={newEmployeeLeavesPerMonth}
+          setNewEmployeeLeavesPerMonth={setNewEmployeeLeavesPerMonth}
+          addEmployee={addEmployee}
+          removeEmployee={removeEmployee}
+          restoreEmployee={restoreEmployee}
+          updateEmployee={updateEmployee}
+          updateEmployeeLeavesPerMonth={updateEmployeeLeavesPerMonth}
+          onBack={() => setView('adminSelection')}
+        />
+        {undoAction && (
+          <UndoToast
+            message={undoAction.message}
+            onUndo={() => { undoAction.onUndo(); setUndoAction(null); if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current); }}
+            onDismiss={() => setUndoAction(null)}
+          />
+        )}
+      </>
     );
   }
 
@@ -724,38 +772,57 @@ const EmployeeRatingApp = () => {
         onAddCategory={addCategory}
         onRemoveCategory={removeCategory}
         onEditCategory={editCategory}
+        settings={settings}
       />
     );
   }
 
   if (view === 'tasks') {
     return (
-      <DailyTasksDashboard
-        employees={activeEmployees}
-        taskTemplates={taskTemplates}
-        dailyTasks={dailyTasks}
-        taskIncompleteReports={taskIncompleteReports}
-        onAddTemplate={addTaskTemplate}
-        onDeleteTemplate={deleteTaskTemplate}
-        onToggleTemplateActive={toggleTemplateActive}
-        onUpdateTemplateAssignees={updateTemplateAssignees}
-        onAddDailyTask={addDailyTask}
-        onBack={() => setView('adminSelection')}
-      />
+      <>
+        <DailyTasksDashboard
+          employees={activeEmployees}
+          taskTemplates={taskTemplates}
+          dailyTasks={dailyTasks}
+          taskIncompleteReports={taskIncompleteReports}
+          onAddTemplate={addTaskTemplate}
+          onDeleteTemplate={deleteTaskTemplate}
+          onToggleTemplateActive={toggleTemplateActive}
+          onUpdateTemplateAssignees={updateTemplateAssignees}
+          onAddDailyTask={addDailyTask}
+          onBack={() => setView('adminSelection')}
+        />
+        {undoAction && (
+          <UndoToast
+            message={undoAction.message}
+            onUndo={() => { undoAction.onUndo(); setUndoAction(null); if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current); }}
+            onDismiss={() => setUndoAction(null)}
+          />
+        )}
+      </>
     );
   }
 
   if (view === 'rules') {
     return (
-      <RulesCompliance
-        employees={activeEmployees}
-        rules={rules}
-        violations={violations}
-        onAddRule={addRule}
-        onToggleRuleActive={toggleRuleActive}
-        onDeleteRule={deleteRule}
-        onBack={() => setView('adminSelection')}
-      />
+      <>
+        <RulesCompliance
+          employees={activeEmployees}
+          rules={rules}
+          violations={violations}
+          onAddRule={addRule}
+          onToggleRuleActive={toggleRuleActive}
+          onDeleteRule={deleteRule}
+          onBack={() => setView('adminSelection')}
+        />
+        {undoAction && (
+          <UndoToast
+            message={undoAction.message}
+            onUndo={() => { undoAction.onUndo(); setUndoAction(null); if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current); }}
+            onDismiss={() => setUndoAction(null)}
+          />
+        )}
+      </>
     );
   }
 
@@ -800,7 +867,21 @@ const EmployeeRatingApp = () => {
     );
   }
 
-  return null;
+  return (
+    <>
+      {undoAction && (
+        <UndoToast
+          message={undoAction.message}
+          onUndo={() => {
+            undoAction.onUndo();
+            setUndoAction(null);
+            if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
+          }}
+          onDismiss={() => setUndoAction(null)}
+        />
+      )}
+    </>
+  );
 };
 
 export default EmployeeRatingApp;

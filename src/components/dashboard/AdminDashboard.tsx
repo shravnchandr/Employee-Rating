@@ -1,9 +1,10 @@
 import React from 'react';
-import { Shield, Users, Award, TrendingUp, History, X, Lock, Unlock, Eye, EyeOff, ArrowLeft, Calendar, Search, BarChart3, Star, UserCheck, Settings, Plus, Trash2, Pencil, Check } from 'lucide-react';
+import { Shield, Users, Award, TrendingUp, History, X, Lock, Unlock, Eye, EyeOff, ArrowLeft, Calendar, Search, BarChart3, Star, UserCheck, Settings, Plus, Trash2, Pencil, Check, Printer } from 'lucide-react';
 import { THEME } from '../../theme';
 import { TrendsView } from '../trends/TrendsView';
 import { GivenRatingsView } from '../history/GivenRatingsView';
-import type { Employee, Rating, MonthlyLeaveRecord } from '../../types';
+import type { Employee, Rating, MonthlyLeaveRecord, AppSettings } from '../../types';
+import { printEmployeeSummary } from '../../utils/printSummary';
 
 interface AdminDashboardProps {
     employees: Employee[];
@@ -21,6 +22,7 @@ interface AdminDashboardProps {
     onAddCategory: (category: string) => void;
     onRemoveCategory: (category: string) => void;
     onEditCategory: (oldName: string, newName: string) => void;
+    settings: AppSettings;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -38,7 +40,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     categories,
     onAddCategory,
     onRemoveCategory,
-    onEditCategory
+    onEditCategory,
+    settings
 }) => {
 
     const [showSensitiveData, setShowSensitiveData] = React.useState(false);
@@ -91,9 +94,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     };
 
     const handleRemoveCategory = (category: string) => {
-        if (confirm(`Are you sure you want to remove "${category}"? This will not delete existing ratings.`)) {
-            onRemoveCategory(category);
-        }
+        onRemoveCategory(category);
     };
 
     const handleSaveEditCategory = (oldName: string) => {
@@ -186,10 +187,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         // Calculate attendance percentage (0-100%)
         const attendancePercentage = Math.max(0, Math.min(100, ((totalAllocated - totalTaken) / totalAllocated) * 100));
 
-        // Convert to 1-3 scale: 90%+ = 3, 70-90% = 2, <70% = 1
+        // Convert to 1-3 scale using configurable thresholds
         let score = 1;
-        if (attendancePercentage >= 90) score = 3;
-        else if (attendancePercentage >= 70) score = 2;
+        if (attendancePercentage >= settings.attendanceExcellentThreshold) score = 3;
+        else if (attendancePercentage >= settings.attendanceGoodThreshold) score = 2;
 
         return { score, hasData: true, leavesTaken: totalTaken, leavesAllocated: totalAllocated };
     };
@@ -523,6 +524,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 >
                                                     <History className="w-4 h-4" />
                                                 </button>
+                                                <button
+                                                    onClick={() => printEmployeeSummary(emp, scores, ratings, monthlyLeaves, settings)}
+                                                    className={`bg-[#E8F5E9] hover:bg-[#C8E6C9] ${THEME.shapes.full} px-4 py-2.5 text-sm font-medium hover:shadow-md transition-all text-[#2E7D32] flex items-center gap-2`}
+                                                    title="Print Summary"
+                                                >
+                                                    <Printer className="w-4 h-4" />
+                                                </button>
                                             </>
                                         )}
                                     </div>
@@ -537,6 +545,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {viewTrendsFor && (
                 <TrendsView
                     employeeId={viewTrendsFor}
+                    employees={employees}
                     ratings={ratings}
                     onClose={() => setViewTrendsFor(null)}
                 />

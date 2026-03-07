@@ -300,11 +300,15 @@ export const DailyTasksDashboard: React.FC<DailyTasksDashboardProps> = ({
                                                                 {task.templateId === null && (
                                                                     <span className="text-xs px-2 py-1 bg-[#B3E5FC] text-[#01579B] rounded-full">Extra</span>
                                                                 )}
-                                                                {hasIssues && (
-                                                                    <span className="text-xs px-2 py-1 bg-[#FFE0B2] text-[#E65100] rounded-full">
-                                                                        {reports.length} report{reports.length > 1 ? 's' : ''}
-                                                                    </span>
-                                                                )}
+                                                                {hasIssues && (() => {
+                                                                    const totalPeers = Math.max(1, employees.length - 1);
+                                                                    const pct = Math.round((reports.length / totalPeers) * 100);
+                                                                    return (
+                                                                        <span className="text-xs px-2 py-1 bg-[#FFE0B2] text-[#E65100] rounded-full font-medium">
+                                                                            {reports.length}/{totalPeers} peers ({pct}%)
+                                                                        </span>
+                                                                    );
+                                                                })()}
                                                             </div>
                                                             {hasIssues && (
                                                                 <div className="mt-2 pt-2 border-t border-[#FFE0B2]">

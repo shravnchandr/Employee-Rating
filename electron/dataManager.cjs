@@ -22,7 +22,8 @@ const initialData = {
     violations: [],
     monthlyLeaves: [],
     taskIncompleteReports: [],
-    adminPassword: 'admin123'
+    adminPassword: 'admin123',
+    settings: { attendanceExcellentThreshold: 90, attendanceGoodThreshold: 70 }
 };
 
 // Security: Sanitize string values to prevent injection
@@ -103,7 +104,8 @@ const readData = () => {
                 violations: Array.isArray(parsed.violations) ? parsed.violations : [],
                 monthlyLeaves: Array.isArray(parsed.monthlyLeaves) ? parsed.monthlyLeaves : [],
                 taskIncompleteReports: Array.isArray(parsed.taskIncompleteReports) ? parsed.taskIncompleteReports : [],
-                adminPassword: typeof parsed.adminPassword === 'string' ? parsed.adminPassword : 'admin123'
+                adminPassword: typeof parsed.adminPassword === 'string' ? parsed.adminPassword : 'admin123',
+                settings: parsed.settings && typeof parsed.settings === 'object' ? parsed.settings : { attendanceExcellentThreshold: 90, attendanceGoodThreshold: 70 }
             };
         }
         return { ...initialData };
@@ -140,7 +142,8 @@ const writeData = (data) => {
             violations: Array.isArray(sanitizedData.violations) ? sanitizedData.violations : currentData.violations,
             monthlyLeaves: Array.isArray(sanitizedData.monthlyLeaves) ? sanitizedData.monthlyLeaves : currentData.monthlyLeaves,
             taskIncompleteReports: Array.isArray(sanitizedData.taskIncompleteReports) ? sanitizedData.taskIncompleteReports : currentData.taskIncompleteReports,
-            adminPassword: typeof sanitizedData.adminPassword === 'string' ? sanitizedData.adminPassword : currentData.adminPassword
+            adminPassword: typeof sanitizedData.adminPassword === 'string' ? sanitizedData.adminPassword : currentData.adminPassword,
+            settings: sanitizedData.settings && typeof sanitizedData.settings === 'object' ? sanitizedData.settings : currentData.settings
         };
 
         const jsonString = JSON.stringify(newData, null, 2);

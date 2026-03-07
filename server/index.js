@@ -31,7 +31,8 @@ if (!fs.existsSync(DB_FILE)) {
         violations: [],
         monthlyLeaves: [],
         taskIncompleteReports: [],
-        adminPassword: 'admin123'
+        adminPassword: 'admin123',
+        settings: { attendanceExcellentThreshold: 90, attendanceGoodThreshold: 70 }
     };
     fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2));
 }
@@ -53,7 +54,8 @@ const readData = () => {
                 violations: parsed.violations || [],
                 monthlyLeaves: parsed.monthlyLeaves || [],
                 taskIncompleteReports: parsed.taskIncompleteReports || [],
-                adminPassword: parsed.adminPassword || 'admin123'
+                adminPassword: parsed.adminPassword || 'admin123',
+                settings: parsed.settings || { attendanceExcellentThreshold: 90, attendanceGoodThreshold: 70 }
             };
         }
         return { employees: [], ratings: [], categories: [], taskTemplates: [], dailyTasks: [], rules: [], violations: [], monthlyLeaves: [], taskIncompleteReports: [], adminPassword: 'admin123' };
@@ -84,7 +86,7 @@ app.get('/api/data', (req, res) => {
 // Save all data
 app.post('/api/save', (req, res) => {
     console.log('POST /api/save');
-    const { employees, ratings, categories, taskTemplates, dailyTasks, rules, violations, monthlyLeaves, taskIncompleteReports, adminPassword } = req.body;
+    const { employees, ratings, categories, taskTemplates, dailyTasks, rules, violations, monthlyLeaves, taskIncompleteReports, adminPassword, settings } = req.body;
     const currentData = readData();
 
     const newData = {
@@ -97,7 +99,8 @@ app.post('/api/save', (req, res) => {
         violations: violations || currentData.violations,
         monthlyLeaves: monthlyLeaves || currentData.monthlyLeaves,
         taskIncompleteReports: taskIncompleteReports || currentData.taskIncompleteReports,
-        adminPassword: adminPassword || currentData.adminPassword
+        adminPassword: adminPassword || currentData.adminPassword,
+        settings: settings || currentData.settings
     };
 
     if (writeData(newData)) {

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, Calendar, Plus, X } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Calendar, Plus, X, List, LayoutGrid } from 'lucide-react';
 import { THEME } from '../../theme';
 import type { Employee, MonthlyLeaveRecord } from '../../types';
 
@@ -27,6 +27,7 @@ export const LeaveTracker: React.FC<LeaveTrackerProps> = ({
     });
     const [expandedEmployee, setExpandedEmployee] = useState<number | null>(null);
     const [newLeaveDate, setNewLeaveDate] = useState('');
+    const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
 
     const navigateMonth = (direction: 'prev' | 'next') => {
         const [year, month] = selectedMonth.split('-').map(Number);
@@ -140,7 +141,16 @@ export const LeaveTracker: React.FC<LeaveTrackerProps> = ({
     // Get min/max dates for the selected month for date picker
     const [year, month] = selectedMonth.split('-').map(Number);
     const minDate = `${selectedMonth}-01`;
-    const maxDate = `${selectedMonth}-${new Date(year, month, 0).getDate()}`;
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const maxDate = `${selectedMonth}-${daysInMonth}`;
+
+    // Calendar grid data
+    const calendarDays = useMemo(() => {
+        const firstDay = new Date(year, month - 1, 1).getDay(); // 0=Sun
+        const days: (number | null)[] = Array(firstDay).fill(null);
+        for (let d = 1; d <= daysInMonth; d++) days.push(d);
+        return days;
+    }, [year, month, daysInMonth]);
 
     return (
         <div className="min-h-screen bg-[#F1F8FB] p-6 lg:p-10">
@@ -163,6 +173,24 @@ export const LeaveTracker: React.FC<LeaveTrackerProps> = ({
                         </div>
                     </div>
                 </header>
+
+                {/* View Toggle */}
+                <div className="flex justify-end mb-3">
+                    <div className="flex gap-1 bg-white p-1 rounded-full shadow-sm">
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 ${THEME.animation.spring} ${viewMode === 'list' ? 'bg-[#0277BD] text-white shadow-sm' : 'text-[#37474F] hover:bg-[#CFE9F3]'}`}
+                        >
+                            <List className="w-4 h-4" /> List
+                        </button>
+                        <button
+                            onClick={() => setViewMode('calendar')}
+                            className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 ${THEME.animation.spring} ${viewMode === 'calendar' ? 'bg-[#0277BD] text-white shadow-sm' : 'text-[#37474F] hover:bg-[#CFE9F3]'}`}
+                        >
+                            <LayoutGrid className="w-4 h-4" /> Calendar
+                        </button>
+                    </div>
+                </div>
 
                 {/* Month Navigator */}
                 <div className={`bg-white ${THEME.shapes.extraLarge} p-4 ${THEME.elevation.low} mb-6 flex items-center justify-between`}>
@@ -203,8 +231,83 @@ export const LeaveTracker: React.FC<LeaveTrackerProps> = ({
                     </div>
                 </div>
 
+                {/* Calendar View */}
+                {viewMode === 'calendar' && (
+                    <div className="space-y-6 animate-fade-in">
+                        {employees.length === 0 ? (
+                            <div className={`text-center py-12 ${THEME.shapes.extraLarge} bg-white border border-[#CFE9F3]`}>
+                                <p className={`${THEME.typography.bodyLarge} text-[#37474F]`}>No employees found.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                                {employees.map(emp => {
+                                    const leaveDates = getLeaveDates(emp.id);
+                                    const leaveSet = new Set(leaveDates.map(d => parseInt(d.split('-')[2])));
+                                    const today = new Date();
+                                    const isCurrentMonth = today.getFullYear() === year && (today.getMonth() + 1) === month;
+                                    const todayDay = isCurrentMonth ? today.getDate() : -1;
+
+                                    return (
+                                        <div key={emp.id} className={`bg-white ${THEME.shapes.asymmetric2} p-5 ${THEME.elevation.low} border-2 border-[#CFE9F3]`}>
+                                            <div className="flex items-center gap-3 mb-4">
+                                                {emp.photo ? (
+                                                    <img src={emp.photo} alt={emp.name} className="w-10 h-10 rounded-full object-cover" />
+                                                ) : (
+                                                    <div className={`w-10 h-10 rounded-full ${emp.avatar} flex items-center justify-center text-white font-bold`}>
+                                                        {emp.name.charAt(0).toUpperCase()}
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <h3 className={`${THEME.typography.titleMedium} text-[#263238]`}>{emp.name}</h3>
+                                                    <p className="text-xs text-[#37474F]">
+                                                        {leaveDates.length} / {getEmployeeAllocation(emp)} leaves
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Calendar grid */}
+                                            <div className="grid grid-cols-7 gap-0.5 text-center">
+                                                {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+                                                    <div key={d} className="text-[10px] font-bold text-[#37474F] py-1">{d}</div>
+                                                ))}
+                                                {calendarDays.map((day, i) => {
+                                                    const isLeave = day ? leaveSet.has(day) : false;
+                                                    const isToday = day === todayDay;
+                                                    return (
+                                                        <div
+                                                            key={i}
+                                                            className={`text-xs rounded-full w-7 h-7 flex items-center justify-center mx-auto font-medium ${
+                                                                !day ? '' :
+                                                                isLeave ? 'bg-[#D32F2F] text-white' :
+                                                                isToday ? 'bg-[#0277BD] text-white' :
+                                                                'text-[#263238]'
+                                                            }`}
+                                                        >
+                                                            {day || ''}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {leaveDates.length > 0 && (
+                                                <div className="mt-3 pt-3 border-t border-[#CFE9F3] flex flex-wrap gap-1">
+                                                    {leaveDates.map(d => (
+                                                        <span key={d} className="text-xs px-2 py-0.5 bg-[#FFCDD2] text-[#B71C1C] rounded-full">
+                                                            {new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {/* Employee Cards */}
-                <div className="space-y-4">
+                {viewMode === 'list' && <div className="space-y-4">
                     {employees.length === 0 ? (
                         <div className={`text-center py-12 ${THEME.shapes.extraLarge} bg-white border border-[#CFE9F3]`}>
                             <p className={`${THEME.typography.bodyLarge} text-[#37474F]`}>No employees found. Add employees first.</p>
@@ -358,7 +461,7 @@ export const LeaveTracker: React.FC<LeaveTrackerProps> = ({
                             );
                         })
                     )}
-                </div>
+                </div>}
             </div>
         </div>
     );

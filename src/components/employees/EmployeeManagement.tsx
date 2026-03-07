@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Plus, Check, Upload, Users, X, Calendar, Pencil, Archive, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Plus, Check, Upload, Users, X, Calendar, Pencil, Archive, RotateCcw, StickyNote } from 'lucide-react';
 import { THEME } from '../../theme';
 import { FloatingLabelInput } from '../common/FloatingLabelInput';
 import type { Employee } from '../../types';
@@ -16,7 +16,7 @@ interface EmployeeManagementProps {
     addEmployee: () => void;
     removeEmployee: (id: number) => void;
     restoreEmployee?: (id: number) => void;
-    updateEmployee: (id: number, updates: { name?: string; photo?: string | null }) => void;
+    updateEmployee: (id: number, updates: { name?: string; photo?: string | null; notes?: string }) => void;
     updateEmployeeLeavesPerMonth: (employeeId: number, leaves: number) => void;
     onBack: () => void;
 }
@@ -41,17 +41,20 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
     const [editName, setEditName] = useState('');
     const [editPhoto, setEditPhoto] = useState<string | null>(null);
+    const [editNotes, setEditNotes] = useState('');
 
     const openEditModal = (emp: Employee) => {
         setEditingEmployee(emp);
         setEditName(emp.name);
         setEditPhoto(emp.photo);
+        setEditNotes(emp.notes ?? '');
     };
 
     const closeEditModal = () => {
         setEditingEmployee(null);
         setEditName('');
         setEditPhoto(null);
+        setEditNotes('');
     };
 
     const handleEditPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -73,7 +76,8 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({
         if (editingEmployee && editName.trim()) {
             updateEmployee(editingEmployee.id, {
                 name: editName.trim(),
-                photo: editPhoto
+                photo: editPhoto,
+                notes: editNotes.trim()
             });
             closeEditModal();
         }
@@ -205,6 +209,11 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({
                                     <div className="flex-1 w-full text-center sm:text-left">
                                         <div className="flex items-center justify-center sm:justify-start gap-3 mb-1">
                                             <h3 className={`${THEME.typography.titleLarge} text-[#263238] truncate`}>{emp.name}</h3>
+                                            {emp.notes && (
+                                                <span title={emp.notes} className="text-[#0277BD]">
+                                                    <StickyNote className="w-4 h-4" />
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="flex items-center justify-center sm:justify-start gap-2 mt-1">
                                             <Calendar className="w-4 h-4 text-[#0277BD]" />
@@ -353,6 +362,20 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({
                                     placeholder="Full Name"
                                     className={`w-full px-4 py-3 border border-gray-300 ${THEME.shapes.medium} focus:outline-none focus:ring-2 focus:ring-[#0277BD] focus:border-transparent`}
                                     autoFocus
+                                />
+                            </div>
+
+                            {/* Notes */}
+                            <div>
+                                <label className={`block ${THEME.typography.labelLarge} text-[#37474F] mb-2`}>
+                                    Admin Notes <span className="text-xs text-gray-400 font-normal">(optional, private)</span>
+                                </label>
+                                <textarea
+                                    value={editNotes}
+                                    onChange={(e) => setEditNotes(e.target.value)}
+                                    placeholder="Add private notes about this employee..."
+                                    rows={3}
+                                    className={`w-full px-4 py-3 border border-gray-300 ${THEME.shapes.medium} focus:outline-none focus:ring-2 focus:ring-[#0277BD] focus:border-transparent resize-none text-sm`}
                                 />
                             </div>
                         </div>

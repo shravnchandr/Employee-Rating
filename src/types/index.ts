@@ -5,6 +5,12 @@ export interface Employee {
     avatar: string;
     leavesPerMonth: number;  // Default leave allocation per month
     isArchived?: boolean;    // Soft delete - archived employees are hidden but data preserved
+    notes?: string;          // Admin notes about this employee
+}
+
+export interface AppSettings {
+    attendanceExcellentThreshold: number;  // % attendance for score 3 (default 90)
+    attendanceGoodThreshold: number;       // % attendance for score 2 (default 70)
 }
 
 export interface Rating {

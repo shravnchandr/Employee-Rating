@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Star, ClipboardList, LogOut, Users, ShieldAlert, Calendar, X, RefreshCw, Key, Eye, EyeOff, Database } from 'lucide-react';
+import { Star, ClipboardList, LogOut, Users, ShieldAlert, Calendar, X, RefreshCw, Key, Eye, EyeOff, Database, AlertCircle, SlidersHorizontal } from 'lucide-react';
 import { THEME } from '../../theme';
 import { updaterApi } from '../../services/api';
+import type { AppSettings } from '../../types';
 
 interface AdminSelectionViewProps {
     onSelectRatings: () => void;
@@ -12,6 +13,9 @@ interface AdminSelectionViewProps {
     onSelectData: () => void;
     onLogout: () => void;
     onChangePassword: (newPassword: string) => void;
+    lastRatingTimestamp: number | null;
+    settings: AppSettings;
+    onUpdateSettings: (settings: AppSettings) => void;
 }
 
 type UpdateStatus = 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error';
@@ -24,8 +28,45 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
     onSelectAttendance,
     onSelectData,
     onLogout,
-    onChangePassword
+    onChangePassword,
+    lastRatingTimestamp,
+    settings,
+    onUpdateSettings
 }) => {
+    // Settings modal state
+    const [showSettingsModal, setShowSettingsModal] = useState(false);
+    const [editExcellent, setEditExcellent] = useState(settings.attendanceExcellentThreshold);
+    const [editGood, setEditGood] = useState(settings.attendanceGoodThreshold);
+    const [settingsError, setSettingsError] = useState('');
+
+    const handleSaveSettings = () => {
+        if (editGood >= editExcellent) {
+            setSettingsError('Good threshold must be lower than Excellent threshold.');
+            return;
+        }
+        if (editExcellent > 100 || editGood < 0) {
+            setSettingsError('Thresholds must be between 0 and 100.');
+            return;
+        }
+        onUpdateSettings({ attendanceExcellentThreshold: editExcellent, attendanceGoodThreshold: editGood });
+        setShowSettingsModal(false);
+        setSettingsError('');
+    };
+
+    const openSettingsModal = () => {
+        setEditExcellent(settings.attendanceExcellentThreshold);
+        setEditGood(settings.attendanceGoodThreshold);
+        setSettingsError('');
+        setShowSettingsModal(true);
+    };
+
+    // Rating round tracking
+    const monthsSinceLastRating = lastRatingTimestamp
+        ? (Date.now() - lastRatingTimestamp) / (1000 * 60 * 60 * 24 * 30)
+        : null;
+    const showRatingBanner = monthsSinceLastRating === null || monthsSinceLastRating >= 3;
+    const [ratingBannerDismissed, setRatingBannerDismissed] = useState(false);
+
     // Password change state
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [newPassword, setNewPassword] = useState('');
@@ -237,6 +278,26 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
             <div className="absolute bottom-20 left-20 w-96 h-96 bg-[#00ACC1]/20 rounded-full blur-3xl"></div>
 
             <div className="max-w-4xl w-full animate-fade-in-up relative z-10">
+                {/* Rating Round Banner */}
+                {showRatingBanner && !ratingBannerDismissed && (
+                    <div className={`bg-amber-50 border border-amber-200 ${THEME.shapes.extraLarge} px-5 py-4 mb-6 flex items-start gap-3`}>
+                        <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                            <p className={`${THEME.typography.labelLarge} text-amber-800`}>
+                                {lastRatingTimestamp === null
+                                    ? 'No ratings have been recorded yet. Consider starting a rating round.'
+                                    : `It's been ${Math.floor(monthsSinceLastRating!)} month${Math.floor(monthsSinceLastRating!) !== 1 ? 's' : ''} since the last rating. Consider starting a new rating round.`}
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setRatingBannerDismissed(true)}
+                            className="text-amber-500 hover:text-amber-700 shrink-0"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                )}
+
                 <div className="text-center mb-10">
                     <div className={`mx-auto w-28 h-28 bg-white ${THEME.shapes.asymmetric1} flex items-center justify-center mb-5 ${THEME.elevation.high} p-4`}>
                         <img src="./janhavi-logo.jpg" alt="Janhavi Medicals" className="w-full h-full object-contain" />
@@ -351,6 +412,13 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
                         <Key className="w-5 h-5" />
                         <span className={THEME.typography.labelLarge}>Change Password</span>
                     </button>
+                    <button
+                        onClick={openSettingsModal}
+                        className={`inline-flex items-center gap-2 px-6 py-3 bg-[#00897B] text-white hover:bg-[#00796B] ${THEME.shapes.full} ${THEME.animation.spring} shadow-md hover:shadow-lg`}
+                    >
+                        <SlidersHorizontal className="w-5 h-5" />
+                        <span className={THEME.typography.labelLarge}>Attendance Settings</span>
+                    </button>
                     {updaterApi.isElectron() && (
                         <button
                             onClick={handleCheckForUpdates}
@@ -370,6 +438,85 @@ export const AdminSelectionView: React.FC<AdminSelectionViewProps> = ({
                     </button>
                 </div>
             </div>
+
+            {/* Attendance Settings Modal */}
+            {showSettingsModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                    <div className={`bg-white ${THEME.shapes.extraLarge} ${THEME.elevation.high} max-w-md w-full p-6 animate-fade-in-up`}>
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className={`${THEME.typography.headlineSmall} text-[#263238]`}>Attendance Score Settings</h2>
+                            <button onClick={() => setShowSettingsModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                                <X className="w-5 h-5 text-[#37474F]" />
+                            </button>
+                        </div>
+
+                        <p className={`${THEME.typography.bodyMedium} text-[#37474F] mb-6`}>
+                            Configure attendance thresholds for scoring. Score 3 (Excellent) requires ≥ Excellent %, Score 2 (Good) requires ≥ Good %.
+                        </p>
+
+                        <div className="space-y-5 mb-6">
+                            <div>
+                                <label className={`block ${THEME.typography.labelLarge} text-[#37474F] mb-2`}>
+                                    Excellent Threshold (Score 3): <strong>{editExcellent}%</strong>
+                                </label>
+                                <input
+                                    type="range"
+                                    min="50"
+                                    max="100"
+                                    step="5"
+                                    value={editExcellent}
+                                    onChange={(e) => setEditExcellent(Number(e.target.value))}
+                                    className="w-full accent-[#0277BD]"
+                                />
+                                <div className="flex justify-between text-xs text-[#37474F] mt-1">
+                                    <span>50%</span><span>100%</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label className={`block ${THEME.typography.labelLarge} text-[#37474F] mb-2`}>
+                                    Good Threshold (Score 2): <strong>{editGood}%</strong>
+                                </label>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="95"
+                                    step="5"
+                                    value={editGood}
+                                    onChange={(e) => setEditGood(Number(e.target.value))}
+                                    className="w-full accent-[#00897B]"
+                                />
+                                <div className="flex justify-between text-xs text-[#37474F] mt-1">
+                                    <span>0%</span><span>95%</span>
+                                </div>
+                            </div>
+
+                            <div className={`bg-[#F1F8FB] ${THEME.shapes.medium} p-3 text-sm text-[#37474F]`}>
+                                <p>• ≥ {editExcellent}% attendance → Score 3 (Excellent)</p>
+                                <p>• ≥ {editGood}% attendance → Score 2 (Good)</p>
+                                <p>• &lt; {editGood}% attendance → Score 1 (Needs Improvement)</p>
+                            </div>
+
+                            {settingsError && <p className="text-red-500 text-sm">{settingsError}</p>}
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowSettingsModal(false)}
+                                className={`flex-1 px-4 py-3 border border-gray-300 text-[#37474F] hover:bg-gray-50 ${THEME.shapes.medium} ${THEME.animation.spring}`}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSaveSettings}
+                                className={`flex-1 px-4 py-3 bg-[#00897B] text-white hover:bg-[#00796B] ${THEME.shapes.medium} ${THEME.animation.spring} flex items-center justify-center gap-2`}
+                            >
+                                <SlidersHorizontal className="w-4 h-4" />
+                                Save Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Change Password Modal */}
             {showPasswordModal && (

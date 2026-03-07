@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Plus, AlertTriangle, Shield, X, Settings, ToggleLeft, ToggleRight, Trash2, Users } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { ArrowLeft, Plus, AlertTriangle, Shield, X, Settings, ToggleLeft, ToggleRight, Trash2, Users, Filter } from 'lucide-react';
 import { THEME } from '../../theme';
 import { FloatingLabelInput } from '../common/FloatingLabelInput';
 import type { Employee, Rule, RuleViolation } from '../../types';
@@ -25,6 +25,25 @@ export const RulesCompliance: React.FC<RulesComplianceProps> = ({
 }) => {
     const [activeTab, setActiveTab] = useState<'overview' | 'rules' | 'history'>('overview');
     const [newRuleName, setNewRuleName] = useState('');
+
+    // History filters
+    const [filterEmployeeId, setFilterEmployeeId] = useState<number | 'all'>('all');
+    const [filterStartDate, setFilterStartDate] = useState('');
+    const [filterEndDate, setFilterEndDate] = useState('');
+
+    const filteredViolations = useMemo(() => {
+        let result = [...violations].reverse();
+        if (filterEmployeeId !== 'all') {
+            result = result.filter(v => v.employeeId === filterEmployeeId);
+        }
+        if (filterStartDate) {
+            result = result.filter(v => v.date >= filterStartDate);
+        }
+        if (filterEndDate) {
+            result = result.filter(v => v.date <= filterEndDate);
+        }
+        return result;
+    }, [violations, filterEmployeeId, filterStartDate, filterEndDate]);
 
     const handleAddRule = () => {
         if (newRuleName.trim()) {
@@ -264,7 +283,57 @@ export const RulesCompliance: React.FC<RulesComplianceProps> = ({
 
                 {activeTab === 'history' && (
                     <div className="space-y-4">
-                        <h2 className={`${THEME.typography.headlineMedium} text-[#263238] mb-4`}>Violation History</h2>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                            <h2 className={`${THEME.typography.headlineMedium} text-[#263238]`}>Violation History</h2>
+                            <span className={`${THEME.typography.labelLarge} text-[#37474F] bg-white px-3 py-1.5 rounded-full`}>
+                                {filteredViolations.length} of {violations.length}
+                            </span>
+                        </div>
+
+                        {/* Filters */}
+                        <div className={`bg-white ${THEME.shapes.extraLarge} p-4 border border-[#CFE9F3] flex flex-wrap gap-4 items-end`}>
+                            <Filter className="w-5 h-5 text-[#37474F] mt-1" />
+                            <div>
+                                <label className={`block text-xs font-medium text-[#37474F] mb-1`}>Employee</label>
+                                <select
+                                    value={filterEmployeeId}
+                                    onChange={(e) => setFilterEmployeeId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                                    className={`px-3 py-2 border border-[#B0BEC5] ${THEME.shapes.small} focus:outline-none focus:border-[#D32F2F] text-sm text-[#263238] bg-white`}
+                                >
+                                    <option value="all">All Employees</option>
+                                    {employees.map(emp => (
+                                        <option key={emp.id} value={emp.id}>{emp.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className={`block text-xs font-medium text-[#37474F] mb-1`}>From Date</label>
+                                <input
+                                    type="date"
+                                    value={filterStartDate}
+                                    onChange={(e) => setFilterStartDate(e.target.value)}
+                                    className={`px-3 py-2 border border-[#B0BEC5] ${THEME.shapes.small} focus:outline-none focus:border-[#D32F2F] text-sm`}
+                                />
+                            </div>
+                            <div>
+                                <label className={`block text-xs font-medium text-[#37474F] mb-1`}>To Date</label>
+                                <input
+                                    type="date"
+                                    value={filterEndDate}
+                                    onChange={(e) => setFilterEndDate(e.target.value)}
+                                    className={`px-3 py-2 border border-[#B0BEC5] ${THEME.shapes.small} focus:outline-none focus:border-[#D32F2F] text-sm`}
+                                />
+                            </div>
+                            {(filterEmployeeId !== 'all' || filterStartDate || filterEndDate) && (
+                                <button
+                                    onClick={() => { setFilterEmployeeId('all'); setFilterStartDate(''); setFilterEndDate(''); }}
+                                    className={`px-3 py-2 text-sm text-[#D32F2F] hover:bg-[#FFCDD2]/30 ${THEME.shapes.full} transition-colors flex items-center gap-1`}
+                                >
+                                    <X className="w-4 h-4" /> Clear Filters
+                                </button>
+                            )}
+                        </div>
+
                         {violations.length === 0 ? (
                             <div className={`text-center py-20 ${THEME.shapes.extraLarge} bg-white border border-[#CFE9F3]`}>
                                 <div className="w-20 h-20 bg-[#B2DFDB] rounded-full flex items-center justify-center mb-6 mx-auto">
@@ -273,8 +342,12 @@ export const RulesCompliance: React.FC<RulesComplianceProps> = ({
                                 <h3 className={`${THEME.typography.headlineSmall} text-[#263238] mb-2`}>No Violations Recorded</h3>
                                 <p className={`${THEME.typography.bodyLarge} text-[#37474F]`}>Great job! Everyone is following the rules.</p>
                             </div>
+                        ) : filteredViolations.length === 0 ? (
+                            <div className={`text-center py-12 ${THEME.shapes.extraLarge} bg-white border border-[#CFE9F3]`}>
+                                <p className={`${THEME.typography.bodyLarge} text-[#37474F]`}>No violations match the selected filters.</p>
+                            </div>
                         ) : (
-                            [...violations].reverse().map((violation, idx) => {
+                            filteredViolations.map((violation, idx) => {
                                 const emp = getEmployee(violation.employeeId);
                                 return (
                                     <div
