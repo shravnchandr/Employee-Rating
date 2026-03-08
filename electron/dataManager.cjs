@@ -166,10 +166,65 @@ const writeData = (data) => {
     }
 };
 
+const getBackupDir = () => {
+    const userDataPath = app.getPath('userData');
+    return path.join(userDataPath, 'backups');
+};
+
+// Create a timestamped backup of db.json. Keeps only the 10 most recent.
+// Skips silently if the database has no employees or ratings yet.
+const backupData = () => {
+    try {
+        const dbPath = getDbPath();
+        if (!fs.existsSync(dbPath)) return { success: false, reason: 'no-data' };
+
+        const raw = fs.readFileSync(dbPath, 'utf8');
+        let parsed;
+        try { parsed = JSON.parse(raw); } catch { return { success: false, reason: 'parse-error' }; }
+
+        // Skip if nothing meaningful has been saved yet
+        const hasEmployees = Array.isArray(parsed.employees) && parsed.employees.length > 0;
+        const hasRatings = Array.isArray(parsed.ratings) && parsed.ratings.length > 0;
+        if (!hasEmployees && !hasRatings) return { success: false, reason: 'empty' };
+
+        const backupDir = getBackupDir();
+        if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+
+        const now = new Date();
+        const ts = [
+            now.getFullYear(),
+            String(now.getMonth() + 1).padStart(2, '0'),
+            String(now.getDate()).padStart(2, '0'),
+            String(now.getHours()).padStart(2, '0'),
+            String(now.getMinutes()).padStart(2, '0')
+        ].join('-');
+
+        fs.writeFileSync(path.join(backupDir, `backup-${ts}.json`), raw, { encoding: 'utf8' });
+
+        // Prune: keep only the 10 most recent backup files
+        const files = fs.readdirSync(backupDir)
+            .filter(f => f.startsWith('backup-') && f.endsWith('.json'))
+            .sort(); // lexicographic sort == chronological since format is YYYY-MM-DD-HH-MM
+        if (files.length > 10) {
+            files.slice(0, files.length - 10).forEach(f => {
+                try { fs.unlinkSync(path.join(backupDir, f)); } catch (_) {}
+            });
+        }
+
+        console.log(`[Backup] Saved backup-${ts}.json`);
+        return { success: true };
+    } catch (err) {
+        console.error('[Backup] Failed:', err);
+        return { success: false, reason: 'error' };
+    }
+};
+
 module.exports = {
     readData,
     writeData,
     ensureDataFile,
+    backupData,
     getDataDir,
-    getDbPath
+    getDbPath,
+    getBackupDir
 };

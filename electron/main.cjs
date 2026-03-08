@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { autoUpdater } = require('electron-updater');
-const { readData, writeData, ensureDataFile } = require('./dataManager.cjs');
+const { readData, writeData, ensureDataFile, backupData } = require('./dataManager.cjs');
 
 let mainWindow = null;
 
@@ -263,6 +263,12 @@ autoUpdater.on('error', (error) => {
 app.whenReady().then(() => {
     ensureDataFile();
     createWindow();
+
+    // Backup on launch (slight delay so the window is ready first)
+    setTimeout(backupData, 5000);
+
+    // Backup every 37 minutes while the app is open
+    setInterval(backupData, 37 * 60 * 1000);
 
     // Check for updates on startup (only in production)
     if (!process.env.ELECTRON_DEV) {
